@@ -1,102 +1,246 @@
 export const InsuranceJourney = () => {
-    // Array of mock timeline events as requested
-    const journeyEvents = [
+    // Initial empty/welcome state for the narrative engine
+    const conversation = [
         {
-            title: "Policy Creation",
-            date: "Oct 12, 2023",
-            description: "Family Health Plan policy was generated and successfully issued.",
-            status: "Completed",
-            icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`,
-            color: "emerald"
+            role: "system",
+            timestamp: "Just now",
+            content: "Welcome to your Insurance Journey narrative. I am designed to continuously monitor your policy events and translate them into a clear, insightful story. Your timeline is currently waiting for new events to be processed.",
+            insight: false
         },
         {
-            title: "Premium Payment",
-            date: "Oct 15, 2023",
-            description: "Initial annual premium payment of $1,250 processed.",
-            status: "Completed",
-            icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>`,
-            color: "emerald"
-        },
-        {
-            title: "Claim Submission",
-            date: "Jan 04, 2024",
-            description: "Medical expense claim #CLM-8832 submitted for outpatient care.",
-            status: "Completed",
-            icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>`,
-            color: "emerald"
-        },
-        {
-            title: "Claim Status Update",
-            date: "Jan 18, 2024",
-            description: "Claim #CLM-8832 is currently being assessed by the claims department.",
-            status: "In Review",
-            icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`,
-            color: "amber"
-        },
-        {
-            title: "Renewal Reminder",
-            date: "Sep 12, 2024",
-            description: "Upcoming renewal for Family Health Plan. Review coverage options.",
-            status: "Pending",
-            icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>`,
-            color: "gray"
+            role: "system",
+            timestamp: "Just now",
+            content: "How would you like to begin? You can connect your policy data source, or ask me a question about your coverage to initiate the narrative.",
+            insight: false,
+            actions: ["Connect Data Source", "Ask a Question", "View Sample Analysis"]
         }
     ];
 
-    const getStatusStyles = (status) => {
-        switch(status) {
-            case 'Completed': return 'background: #ECFDF5; color: #059669; border: 1px solid #A7F3D0;';
-            case 'In Review': return 'background: #FFFBEB; color: #D97706; border: 1px solid #FDE68A;';
-            case 'Pending': return 'background: #F3F4F6; color: #4B5563; border: 1px solid #D1D5DB;';
-            default: return 'background: #F3F4F6; color: #4B5563; border: 1px solid #D1D5DB;';
-        }
-    };
+    const renderMessage = (msg, index) => {
+        const isSystem = msg.role === "system";
+        
+        // Removed white background, replaced with premium glass/transparent subtle effect
+        let messageStyle = isSystem 
+            ? 'background: rgba(0, 0, 0, 0.02); border: 1px solid rgba(0, 0, 0, 0.06); border-radius: 20px 20px 20px 4px; box-shadow: 0 4px 24px rgba(0,0,0,0.01); color: #111827; backdrop-filter: blur(10px);' 
+            : 'background: #111827; color: #FFFFFF; border-radius: 20px 20px 4px 20px; box-shadow: 0 4px 24px rgba(0,0,0,0.08);';
 
-    const getIconStyles = (color) => {
-        switch(color) {
-            case 'emerald': return 'background: #10B981; color: white; border: 4px solid #ECFDF5; box-shadow: 0 0 0 2px #10B981;';
-            case 'amber': return 'background: #F59E0B; color: white; border: 4px solid #FFFBEB; box-shadow: 0 0 0 2px #F59E0B;';
-            case 'gray': return 'background: #9CA3AF; color: white; border: 4px solid #F3F4F6; box-shadow: 0 0 0 2px #9CA3AF;';
-            default: return 'background: #9CA3AF; color: white;';
-        }
-    };
-
-    const timelineHTML = journeyEvents.map((event, index) => {
-        const isLast = index === journeyEvents.length - 1;
-        return `
-            <div style="position: relative; display: flex; gap: 24px; padding-bottom: ${isLast ? '0' : '40px'};">
-                ${!isLast ? `<div style="position: absolute; left: 24px; top: 48px; bottom: 0; width: 2px; background: #E5E7EB;"></div>` : ''}
-                
-                <div style="position: relative; z-index: 2; flex-shrink: 0; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; ${getIconStyles(event.color)} transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-                    ${event.icon}
+        let actionsHtml = '';
+        if (msg.actions) {
+            actionsHtml = `
+                <div style="display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap;">
+                    ${msg.actions.map(action => `
+                        <button style="background: transparent; border: 1px solid rgba(0,0,0,0.15); color: #374151; padding: 10px 20px; border-radius: 100px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.3s ease;" onmouseover="this.style.background='#111827'; this.style.color='#FFFFFF'; this.style.borderColor='#111827';" onmouseout="this.style.background='transparent'; this.style.color='#374151'; this.style.borderColor='rgba(0,0,0,0.15)';">${action}</button>
+                    `).join('')}
                 </div>
-                
-                <div style="flex-grow: 1; background: white; border: 1px solid #E5E7EB; border-radius: 12px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); transition: box-shadow 0.3s ease, transform 0.3s ease;" onmouseover="this.style.boxShadow='0 12px 20px -5px rgba(0,0,0,0.1), 0 8px 10px -5px rgba(0,0,0,0.04)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='0 4px 6px -1px rgba(0,0,0,0.05)'; this.style.transform='none'">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
-                        <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: #111827;">${event.title}</h3>
-                        <span style="padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; ${getStatusStyles(event.status)}">${event.status}</span>
-                    </div>
-                    <div style="font-size: 13px; font-weight: 600; color: #6B7280; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                        ${event.date}
-                    </div>
-                    <p style="margin: 0; font-size: 15px; color: #4B5563; line-height: 1.6;">${event.description}</p>
+            `;
+        }
+
+        return `
+            <div style="display: flex; flex-direction: column; align-items: ${isSystem ? 'flex-start' : 'flex-end'}; margin-bottom: 32px; animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; animation-delay: ${index * 0.1}s;">
+                <div style="font-size: 11px; font-weight: 500; color: #6B7280; margin-bottom: 8px; padding: 0 4px; text-transform: uppercase; letter-spacing: 0.5px;">
+                    ${isSystem ? 'Narrative Engine • ' + msg.timestamp : 'You • ' + msg.timestamp}
+                </div>
+                <div style="max-width: 85%; padding: 24px; font-size: 15px; line-height: 1.7; ${messageStyle}">
+                    <div style="font-weight: 400; letter-spacing: -0.2px;">${msg.content}</div>
+                    ${actionsHtml}
                 </div>
             </div>
         `;
-    }).join('');
+    };
 
     return `
-        <div style="animation: fadeIn 0.4s ease; padding: 0 20px; font-family: 'Inter', system-ui, sans-serif; max-width: 900px; margin: 0 auto;">
-            <!-- Header -->
-            <div style="text-align: center; margin-bottom: 48px;">
-                <h1 style="font-size: 32px; font-weight: 800; color: #111827; margin: 0 0 12px 0; letter-spacing: -0.5px;">Insurance Journey</h1>
-                <p style="color: #6B7280; font-size: 16px; margin: 0; max-width: 500px; margin: 0 auto; line-height: 1.5;">A comprehensive chronological view of your insurance activities, from policy inception to renewals.</p>
-            </div>
+        <div style="display: flex; height: calc(100vh - 80px); background: transparent; font-family: 'Inter', system-ui, sans-serif; gap: 20px; max-width: 1200px; margin: 0 auto; padding: 20px; box-sizing: border-box;">
             
-            <!-- Timeline Container -->
-            <div style="padding-left: 12px; margin-bottom: 60px;">
-                ${timelineHTML}
+            <style>
+                @keyframes slideUp { 
+                    from { opacity: 0; transform: translateY(15px); } 
+                    to { opacity: 1; transform: translateY(0); } 
+                }
+                
+                .journey-chat-container {
+                    flex: 1.2;
+                    display: flex;
+                    flex-direction: column;
+                    position: relative;
+                }
+                
+                .journey-header {
+                    padding: 20px 0 24px 0;
+                    margin-bottom: 24px;
+                    border-bottom: 1px solid rgba(0,0,0,0.06);
+                    position: sticky;
+                    top: 0;
+                    background: transparent;
+                    backdrop-filter: blur(12px);
+                    z-index: 10;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+                
+                .journey-title {
+                    font-size: 32px;
+                    font-weight: 800;
+                    color: #111827;
+                    margin: 0;
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    letter-spacing: -0.5px;
+                }
+                
+                .journey-messages {
+                    flex-grow: 1;
+                    overflow-y: auto;
+                    padding: 10px 20px 40px 0;
+                    display: flex;
+                    flex-direction: column;
+                    scrollbar-width: thin;
+                    scrollbar-color: rgba(0,0,0,0.1) transparent;
+                }
+                
+                .journey-messages::-webkit-scrollbar {
+                    width: 4px;
+                }
+                .journey-messages::-webkit-scrollbar-thumb {
+                    background-color: rgba(0,0,0,0.1);
+                    border-radius: 4px;
+                }
+                
+                .journey-input-area {
+                    padding: 24px 20px 20px 0;
+                    background: transparent;
+                    position: sticky;
+                    bottom: 0;
+                    z-index: 10;
+                    backdrop-filter: blur(12px);
+                }
+                
+                .journey-input-wrapper {
+                    position: relative;
+                    width: 100%;
+                }
+                
+                .journey-input {
+                    width: 100%;
+                    padding: 20px 64px 20px 28px;
+                    border: 1px solid rgba(0,0,0,0.08);
+                    border-radius: 16px;
+                    font-size: 15px;
+                    background: rgba(255,255,255,0.6);
+                    color: #111827;
+                    box-shadow: 0 10px 40px rgba(0,0,0,0.02);
+                    outline: none;
+                    box-sizing: border-box;
+                    transition: all 0.3s ease;
+                    backdrop-filter: blur(8px);
+                }
+                
+                .journey-input::placeholder {
+                    color: #6B7280;
+                    font-weight: 400;
+                }
+                
+                .journey-input:focus {
+                    border-color: #111827;
+                    box-shadow: 0 10px 40px rgba(0,0,0,0.05);
+                    background: #FFFFFF;
+                }
+                
+                .journey-send-btn {
+                    position: absolute;
+                    right: 12px;
+                    top: 12px;
+                    bottom: 12px;
+                    width: 40px;
+                    height: 40px;
+                    background: #111827;
+                    color: #FFFFFF;
+                    border: none;
+                    border-radius: 12px;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                }
+                
+                .journey-send-btn:hover {
+                    background: #374151;
+                    transform: translateY(-1px);
+                }
+            </style>
+
+            <!-- Graphic Panel on Left -->
+            <div style="flex: 0.7; background: transparent; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 60px 0;">
+                <!-- Vertical Line -->
+                <div style="position: absolute; left: 50%; top: 40px; bottom: 40px; width: 3px; background: linear-gradient(to bottom, #E0E7FF, #6366F1, #10B981, #E0E7FF); transform: translateX(-50%); border-radius: 3px;"></div>
+                
+                <!-- Timeline Nodes -->
+                <div style="width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: space-between; position: relative; z-index: 2;">
+                    
+                    <!-- Node 1 -->
+                    <div style="display: flex; justify-content: center; position: relative; animation: slideUp 0.6s ease forwards; opacity: 0; animation-delay: 0.2s;">
+                        <div style="width: 72px; height: 72px; background: #FFFFFF; border: 3px solid #6366F1; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(99,102,241,0.15); overflow: hidden;">
+                            <img src="assets/girl_using_phone.png" style="width: 100%; height: 100%; object-fit: cover;" alt="User">
+                        </div>
+                        <!-- Chat bubble Left -->
+                        <div style="position: absolute; right: calc(50% + 48px); top: 12px; background: #6366F1; color: white; padding: 10px 16px; border-radius: 16px 16px 0 16px; font-size: 12px; font-weight: 600; box-shadow: 0 4px 12px rgba(99,102,241,0.2);">Exploring plans...</div>
+                    </div>
+
+                    <!-- Node 2 -->
+                    <div style="display: flex; justify-content: center; position: relative; animation: slideUp 0.6s ease forwards; opacity: 0; animation-delay: 0.4s;">
+                        <div style="width: 72px; height: 72px; background: #FFFFFF; border: 3px solid #10B981; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(16,185,129,0.15); overflow: hidden;">
+                            <img src="assets/girl_using_phone.png" style="width: 100%; height: 100%; object-fit: cover;" alt="User">
+                        </div>
+                        <!-- Chat bubble Right -->
+                        <div style="position: absolute; left: calc(50% + 48px); top: 12px; background: #10B981; color: white; padding: 10px 16px; border-radius: 16px 16px 16px 0; font-size: 12px; font-weight: 600; box-shadow: 0 4px 12px rgba(16,185,129,0.2);">Policy active!</div>
+                    </div>
+
+                    <!-- Node 3 -->
+                    <div style="display: flex; justify-content: center; position: relative; animation: slideUp 0.6s ease forwards; opacity: 0; animation-delay: 0.6s;">
+                        <div style="width: 72px; height: 72px; background: #FFFFFF; border: 3px solid #F59E0B; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(245,158,11,0.15); overflow: hidden;">
+                            <img src="assets/girl_using_phone.png" style="width: 100%; height: 100%; object-fit: cover;" alt="User">
+                        </div>
+                        <!-- Chat bubble Left -->
+                        <div style="position: absolute; right: calc(50% + 48px); top: 12px; background: #F59E0B; color: white; padding: 10px 16px; border-radius: 16px 16px 0 16px; font-size: 12px; font-weight: 600; box-shadow: 0 4px 12px rgba(245,158,11,0.2);">Submitting claim...</div>
+                    </div>
+
+                    <!-- Node 4 -->
+                    <div style="display: flex; justify-content: center; position: relative; animation: slideUp 0.6s ease forwards; opacity: 0; animation-delay: 0.8s;">
+                        <div style="width: 72px; height: 72px; background: #FFFFFF; border: 3px solid #6B7280; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(107,114,128,0.15); overflow: hidden;">
+                            <img src="assets/girl_using_phone.png" style="width: 100%; height: 100%; object-fit: cover;" alt="User">
+                        </div>
+                         <!-- Chat bubble Right -->
+                         <div style="position: absolute; left: calc(50% + 48px); top: 12px; background: #6B7280; color: white; padding: 10px 16px; border-radius: 16px 16px 16px 0; font-size: 12px; font-weight: 600; box-shadow: 0 4px 12px rgba(107,114,128,0.2);">Renewal upcoming</div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="journey-chat-container">
+                <div class="journey-header">
+                    <h1 class="journey-title">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                        Insurance Journey
+                    </h1>
+                    <div style="font-size: 13px; font-weight: 600; color: #9CA3AF; text-transform: uppercase; letter-spacing: 1px;">
+                        Awaiting Events
+                    </div>
+                </div>
+
+                <div class="journey-messages">
+                    ${conversation.map((msg, index) => renderMessage(msg, index)).join('')}
+                </div>
+
+                <div class="journey-input-area">
+                    <div class="journey-input-wrapper">
+                        <input type="text" class="journey-input" placeholder="Type a message or event...">
+                        <button class="journey-send-btn">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     `;

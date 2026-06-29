@@ -2,9 +2,7 @@ import { useDashboardState } from './hooks/useDashboardState.js?v=2';
 import { Sidebar } from './layouts/SidebarPolicyholder.js?v=2';
 import { Topbar } from './layouts/Topbar.js?v=2';
 import { Home } from './pages/Home.js?v=8';
-import { Profile } from './pages/Profile.js?v=2';
-import { Settings } from './pages/Settings.js?v=2';
-import { Notifications } from './pages/Notifications.js?v=2';
+import { ProfileSettingsHub } from './pages/ProfileSettingsHub.js';
 import { InsuranceGoals } from './pages/InsuranceGoals.js?v=2';
 import { InsuranceLocker } from './pages/InsuranceLocker.js?v=2';
 import { InsuranceJourney } from './pages/InsuranceJourney.js?v=2';
@@ -50,12 +48,8 @@ document.addEventListener('DOMContentLoaded', () => {
             dashboardRoot.innerHTML = '<div style="padding: 40px; color: #6B7280; font-weight: 500;">Loading dashboard data...</div>';
             const stats = await DashboardService.fetchDashboardStats();
             dashboardRoot.innerHTML = Home(user, stats);
-        } else if (state.activeModule === 'profile') {
-            dashboardRoot.innerHTML = Profile(user);
-        } else if (state.activeModule === 'settings') {
-            dashboardRoot.innerHTML = Settings();
-        } else if (state.activeModule === 'notifications') {
-            dashboardRoot.innerHTML = Notifications();
+        } else if (state.activeModule === 'profile-hub') {
+            dashboardRoot.innerHTML = ProfileSettingsHub(user);
         } else if (state.activeModule === 'insurance-goals') {
             dashboardRoot.innerHTML = InsuranceGoals();
         } else if (state.activeModule === 'insurance-locker') {

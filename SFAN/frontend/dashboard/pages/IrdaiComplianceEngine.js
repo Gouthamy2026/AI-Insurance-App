@@ -1,4 +1,19 @@
 export const IrdaiComplianceEngine = () => {
+    if (!window.IrdaiActions) {
+        window.IrdaiActions = {
+            analyze: () => {
+                const btn = document.getElementById('analyze-btn');
+                const grid = document.getElementById('irdai-results-grid');
+                btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> Analyzing...';
+                btn.style.opacity = '0.8';
+                setTimeout(() => {
+                    grid.style.display = 'grid';
+                    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg> Analyze Now';
+                    btn.style.opacity = '1';
+                }, 800);
+            }
+        };
+    }
     return `
         <section class="module-section active" style="max-width: 1200px; margin: 0 auto; padding: 40px; min-height: calc(100vh - 80px); box-sizing: border-box; animation: fadeIn 0.4s ease; background: transparent;">
             
@@ -24,59 +39,10 @@ export const IrdaiComplianceEngine = () => {
                     color: #6B7280;
                     margin: 0;
                 }
-                
-                .irdai-stepper {
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    margin-bottom: 32px;
-                    position: relative;
-                }
-                
-                .irdai-stepper::before {
-                    content: '';
-                    position: absolute;
-                    top: 50%;
-                    left: 0;
-                    right: 0;
-                    height: 1px;
-                    background: #E5E7EB;
-                    z-index: 0;
-                }
-                
-                .irdai-step {
-                    background: transparent;
-                    position: relative;
-                    z-index: 1;
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                    font-size: 13px;
-                    font-weight: 600;
-                    color: #9CA3AF;
-                    background: #F9FAFB; /* Assuming body is F9FAFB or similar to mask line */
-                    padding: 0 16px;
-                }
-                
-                .irdai-step.active {
-                    color: #6366F1;
-                }
-                
-                .irdai-step-icon {
-                    width: 24px;
-                    height: 24px;
-                    border-radius: 50%;
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    background: #F3F4F6;
-                    color: #9CA3AF;
-                    font-size: 12px;
-                }
-                
-                .irdai-step.active .irdai-step-icon {
-                    background: #6366F1;
-                    color: #FFFFFF;
+                .irdai-subtitle {
+                    font-size: 14px;
+                    color: #6B7280;
+                    margin: 0;
                 }
                 
                 .irdai-input-card {
@@ -224,24 +190,6 @@ export const IrdaiComplianceEngine = () => {
                 </h1>
                 <p class="irdai-subtitle">AI-powered insights on compliance, consumer protection, and regulatory guidance.</p>
             </div>
-
-            <div class="irdai-stepper">
-                <div class="irdai-step active">
-                    <div class="irdai-step-icon">1</div>
-                    Ask Your Question
-                </div>
-                <div class="irdai-step">
-                    <div class="irdai-step-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></div>
-                    AI Analysis
-                </div>
-                <div class="irdai-step">
-                    <div class="irdai-step-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></div>
-                    Regulatory Review
-                </div>
-                <div class="irdai-step">
-                    <div class="irdai-step-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg></div>
-                    Insights & Actions
-                </div>
             </div>
 
             <div class="irdai-input-card">
@@ -254,7 +202,7 @@ export const IrdaiComplianceEngine = () => {
                     <div style="position: absolute; right: 180px; top: 50%; transform: translateY(-50%); color: #9CA3AF; font-size: 12px; font-weight: 500;">
                         0/500
                     </div>
-                    <button class="irdai-analyze-btn">
+                    <button id="analyze-btn" class="irdai-analyze-btn" onclick="window.IrdaiActions.analyze()">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
                         Analyze Now
                     </button>
@@ -284,7 +232,7 @@ export const IrdaiComplianceEngine = () => {
                 </div>
             </div>
 
-            <div class="irdai-cards-grid">
+            <div id="irdai-results-grid" class="irdai-cards-grid" style="display: none; margin-top: 32px; animation: fadeIn 0.4s ease;">
                 <div class="irdai-card">
                     <div class="irdai-card-icon" style="background: #FEE2E2;">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>

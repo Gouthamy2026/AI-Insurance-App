@@ -8,37 +8,64 @@
     <link rel="stylesheet" href="css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
-<body class="login-bg">
-    <div class="glass-container login-box">
-        <div class="logo" style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 30px;">
-            <img src="assets/sfan_logo.png" alt="SFAN Logo" style="width: 140px; height: auto; border-radius: 8px;">
-            <div style="text-align: left;">
-                <h1 style="margin-bottom: 4px;">SFAN</h1>
-                <p style="margin-bottom: 0;">Smart Financial Analysis Network</p>
-            </div>
+<body style="margin: 0; padding: 0; display: flex; height: 100vh; font-family: 'Inter', sans-serif; overflow: hidden; background: #FFFFFF;">
+    
+    <!-- Left Section -->
+    <div style="flex: 1.2; background: linear-gradient(135deg, #E65100 -25%, #EAA085 15%, #F4E4EF 40%, #DCC8F4 75%, #B69ADE 120%); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px; color: #111827; position: relative;">
+        <!-- Decorative background elements -->
+        <div style="position: absolute; top: -10%; left: -10%; width: 500px; height: 500px; background: radial-gradient(circle, rgba(255,255,255,0.4) 0%, rgba(0,0,0,0) 70%); border-radius: 50%;"></div>
+        <div style="position: absolute; bottom: -10%; right: -10%; width: 600px; height: 600px; background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, rgba(0,0,0,0) 70%); border-radius: 50%;"></div>
+        
+        <div style="z-index: 1; text-align: center; max-width: 640px;">
+            <img src="assets/sfan_logo.png" alt="SFAN Logo" style="width: 420px; height: auto; display: inline-block; margin-bottom: 40px;">
+            <h1 style="font-size: 54px; font-weight: 800; margin-bottom: 20px; letter-spacing: -1.5px; line-height: 1.1; color: #111827;">Welcome to SFAN.</h1>
+            <p style="font-size: 22px; color: #4B5563; line-height: 1.6; margin-bottom: 0; font-weight: 500;">The Smart Financial Analysis Network.<br>Empowering your insurance journey with intelligent, AI-driven insights.</p>
         </div>
-        <form id="loginForm">
-            <div class="input-group">
-                <label for="email">Email Address</label>
-                <input type="email" id="email" required placeholder="admin@sfan.com">
-            </div>
-            <div class="input-group">
-                <label for="password">Password</label>
-                <div class="password-wrapper">
-                    <input type="password" id="password" required placeholder="••••••••">
-                    <span class="toggle-password" id="togglePassword">👁️</span>
-                </div>
-            </div>
-            <div class="auth-options">
-                <label class="remember-me">
-                    <input type="checkbox" id="rememberMe"> Remember Me
-                </label>
-                <a href="#" class="forgot-password" onclick="alert('Password recovery flow would go here.')">Forgot Password?</a>
-            </div>
-            <button type="submit" class="btn-primary">Secure Sign In</button>
-        </form>
-        <p class="error-msg" id="errorMsg"></p>
     </div>
+
+    <!-- Right Section -->
+    <div style="flex: 1; display: flex; justify-content: center; align-items: center; background: #FFFFFF; padding: 40px; position: relative;">
+        <div style="width: 100%; max-width: 480px; animation: fadeIn 0.6s ease-out;">
+            
+            <div style="margin-bottom: 48px; text-align: left;">
+                <h2 style="font-size: 36px; font-weight: 700; color: #111827; margin-bottom: 12px; letter-spacing: -0.5px;">Sign In</h2>
+                <p style="color: #6B7280; font-size: 18px; margin: 0;">Enter your credentials to access your dashboard.</p>
+            </div>
+
+            <form id="loginForm">
+                <div class="input-group" style="margin-bottom: 24px;">
+                    <label for="email" style="display: block; font-size: 16px; font-weight: 600; color: #374151; margin-bottom: 10px;">Email Address</label>
+                    <input type="email" id="email" required placeholder="admin@sfan.com" style="width: 100%; padding: 16px 20px; border: 1px solid #D1D5DB; border-radius: 12px; font-size: 18px; outline: none; transition: all 0.2s; box-sizing: border-box;" onfocus="this.style.borderColor='#3B82F6'; this.style.boxShadow='0 0 0 3px rgba(59,130,246,0.1)';" onblur="this.style.borderColor='#D1D5DB'; this.style.boxShadow='none';">
+                </div>
+                <div class="input-group" style="margin-bottom: 32px;">
+                    <label for="password" style="display: block; font-size: 16px; font-weight: 600; color: #374151; margin-bottom: 10px;">Password</label>
+                    <div class="password-wrapper" style="position: relative;">
+                        <input type="password" id="password" required placeholder="••••••••" style="width: 100%; padding: 16px 20px; border: 1px solid #D1D5DB; border-radius: 12px; font-size: 18px; outline: none; transition: all 0.2s; box-sizing: border-box;" onfocus="this.style.borderColor='#3B82F6'; this.style.boxShadow='0 0 0 3px rgba(59,130,246,0.1)';" onblur="this.style.borderColor='#D1D5DB'; this.style.boxShadow='none';">
+                        <span class="toggle-password" id="togglePassword" style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #6B7280; font-size: 20px;">👁️</span>
+                    </div>
+                </div>
+                
+                <div class="auth-options" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;">
+                    <label class="remember-me" style="display: flex; align-items: center; gap: 8px; font-size: 16px; color: #4B5563; cursor: pointer;">
+                        <input type="checkbox" id="rememberMe" style="width: 18px; height: 18px; accent-color: #111827; cursor: pointer;"> Remember Me
+                    </label>
+                    <a href="#" class="forgot-password" onclick="alert('Password recovery flow would go here.')" style="font-size: 16px; font-weight: 600; color: #3B82F6; text-decoration: none;">Forgot Password?</a>
+                </div>
+                
+                <button type="submit" class="btn-primary" style="width: 100%; padding: 18px; background: #111827; color: white; border: none; border-radius: 12px; font-size: 18px; font-weight: 600; cursor: pointer; transition: background 0.2s; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);" onmouseover="this.style.background='#1F2937'" onmouseout="this.style.background='#111827'">Secure Sign In</button>
+            </form>
+            
+            <p class="error-msg" id="errorMsg" style="color: #EF4444; font-size: 14px; font-weight: 500; text-align: center; margin-top: 16px; min-height: 20px;"></p>
+        </div>
+    </div>
+
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+    
     <script src="js/api.js"></script>
     <script src="js/app.js"></script>
 </body>
