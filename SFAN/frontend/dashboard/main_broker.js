@@ -11,6 +11,8 @@ import { InsuranceJourney } from './pages/InsuranceJourney.js?v=2';
 import { ClaimOutcomeAnalyzer } from './pages/ClaimOutcomeAnalyzer.js?v=21';
 import { CareEligibilityEngine } from './pages/CareEligibilityEngine.js?v=1';
 import { AiAssetCoverageAdvisor } from './pages/AiAssetCoverageAdvisor.js';
+import { AiAssistant } from './pages/AiAssistant.js';
+import { IrdaiComplianceEngine } from './pages/IrdaiComplianceEngine.js';
 import { ModulePlaceholder } from './pages/ModulePlaceholder.js?v=2';
 import { DashboardService } from './services/dashboardApi.js';
 
@@ -66,6 +68,10 @@ document.addEventListener('DOMContentLoaded', () => {
             dashboardRoot.innerHTML = CareEligibilityEngine();
         } else if (state.activeModule === 'ai-asset-coverage') {
             dashboardRoot.innerHTML = AiAssetCoverageAdvisor();
+        } else if (state.activeModule === 'irdai-compliance-engine') {
+            dashboardRoot.innerHTML = IrdaiComplianceEngine();
+        } else if (state.activeModule === 'ai-assistant') {
+            dashboardRoot.innerHTML = AiAssistant(user);
         } else {
             dashboardRoot.innerHTML = ModulePlaceholder({ moduleId: state.activeModule });
         }

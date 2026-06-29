@@ -10,6 +10,8 @@ export const Home = (user, data) => {
     const options = { year: 'numeric', month: 'long', day: 'numeric' };
     const today = new Date().toLocaleDateString('en-US', options);
 
+
+
     return `
         <section class="module-section active" style="max-width: 1400px; margin: 0 auto; padding: 30px 40px 100px 40px; min-height: calc(100vh - 80px); box-sizing: border-box; animation: fadeIn 0.4s ease; background: transparent;">
             

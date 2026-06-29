@@ -38,7 +38,11 @@ export const CareEligibilityEngine = () => {
             const admissionType = document.getElementById('ce-admission-type').value;
             const department = document.getElementById('ce-department').value.trim();
             
-            if (!insuranceType || !policy || !profile || !condition || !severity || !conditionType || !treatmentType || !admissionType || !department) { 
+            const sumInsured = document.getElementById('ce-sum-insured').value.trim();
+            const policyType = document.getElementById('ce-policy-type').value;
+            const policyAge = document.getElementById('ce-policy-age').value.trim();
+
+            if (!insuranceType || !policy || !profile || !condition || !severity || !conditionType || !treatmentType || !admissionType || !department || !sumInsured || !policyAge) { 
                 alert('Please fill out all fields before generating analysis.'); 
                 return; 
             }
@@ -47,7 +51,8 @@ export const CareEligibilityEngine = () => {
                 ...window.CareEligibilityActions.state,
                 isAnalyzing: true,
                 insuranceType, policy, patientProfile: profile,
-                condition, severity, conditionType, treatmentType, admissionType, department
+                condition, severity, conditionType, treatmentType, admissionType, department,
+                sumInsured, policyType, policyAge
             };
             
             document.getElementById('dashboard-root').innerHTML = CareEligibilityEngine();
@@ -140,15 +145,19 @@ export const CareEligibilityEngine = () => {
                         </select>
                     </div>
 
-                    <div style="${inputCardStyle} justify-content: space-between;">
-                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 14px; font-weight: 700; color: #111827;">
+                    <div style="${inputCardStyle}">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 14px; font-weight: 700; color: #111827;">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
                             3. Policy Details
                         </div>
-                        <div style="display: flex; flex-direction: column; gap: 6px; font-size: 13px;">
-                            <div style="display: flex; justify-content: space-between;"><span style="color: #6B7280; font-weight: 500;">Sum Insured:</span> <span style="font-weight: 700; color: #111827;">₹5,00,000</span></div>
-                            <div style="display: flex; justify-content: space-between;"><span style="color: #6B7280; font-weight: 500;">Policy Type:</span> <span style="font-weight: 700; color: #111827;">Individual</span></div>
-                            <div style="display: flex; justify-content: space-between;"><span style="color: #6B7280; font-weight: 500;">Policy Age:</span> <span style="font-weight: 700; color: #111827;">2 Years</span></div>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <input type="text" id="ce-sum-insured" style="${inputStyle} padding: 8px;" placeholder="Sum Insured (e.g. ₹5,00,000)" value="₹5,00,000">
+                            <select id="ce-policy-type" style="${selectStyle} padding: 8px;">
+                                <option value="Individual" selected>Individual</option>
+                                <option value="Family Floater">Family Floater</option>
+                                <option value="Group Health">Group Health</option>
+                            </select>
+                            <input type="text" id="ce-policy-age" style="${inputStyle} padding: 8px;" placeholder="Policy Age (e.g. 2 Years)" value="2 Years">
                         </div>
                     </div>
 
