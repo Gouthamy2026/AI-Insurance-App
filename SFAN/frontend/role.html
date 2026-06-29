@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Your Role - SFAN</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="welcome-v2-bg">
+    <div class="welcome-v2-card">
+        
+        <!-- Header -->
+        <div class="welcome-v2-header">
+            <img src="assets/sfan_logo.png" alt="SFAN Logo" style="width: 72px; height: 72px; border-radius: 8px;">
+            <div class="header-text">
+                <span class="header-title">SFAN</span>
+                <span class="header-subtitle">Insurance Intelligence</span>
+            </div>
+        </div>
+
+        <div class="role-v2-content">
+            <p class="role-v2-greeting" id="greetingText">Hello, User 👋</p>
+            <h1 class="role-v2-headline">Select Your Role</h1>
+            <p class="role-v2-subhead">Help us personalize your experience by choosing the role that best describes you.</p>
+
+            <div class="role-v2-list">
+                <label class="role-v2-item">
+                    <input type="radio" name="role" value="policyholder" checked>
+                    <div class="role-v2-icon-box"><svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" fill="#FF8A65"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                    <div class="role-v2-text">
+                        <span class="role-v2-title">Policyholder</span>
+                        <span class="role-v2-desc">Manage your policies, claims, and coverage.</span>
+                    </div>
+                    <div class="role-v2-arrow">&rarr;</div>
+                </label>
+
+                <label class="role-v2-item">
+                    <input type="radio" name="role" value="individual">
+                    <div class="role-v2-icon-box"><svg viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z" fill="#FF8A65"/></svg></div>
+                    <div class="role-v2-text">
+                        <span class="role-v2-title">Individual User</span>
+                        <span class="role-v2-desc">Explore insights, tools, and AI-powered assistance.</span>
+                    </div>
+                    <div class="role-v2-arrow">&rarr;</div>
+                </label>
+
+                <label class="role-v2-item">
+                    <input type="radio" name="role" value="broker">
+                    <div class="role-v2-icon-box"><svg viewBox="0 0 24 24" fill="none"><path d="M4 12l4-4 4 4M20 12l-4-4-4 4M12 20V4" stroke="#FF8A65" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                    <div class="role-v2-text">
+                        <span class="role-v2-title">Insurance Broker</span>
+                        <span class="role-v2-desc">Manage clients and provide insurance solutions.</span>
+                    </div>
+                    <div class="role-v2-arrow">&rarr;</div>
+                </label>
+
+            </div>
+
+            <button class="welcome-v2-btn" onclick="saveRoleAndContinue()">Continue &rarr;</button>
+
+            <div class="role-v2-dots">
+                <span class="dot"></span>
+                <span class="dot active"></span>
+                <span class="dot"></span>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const user = JSON.parse(localStorage.getItem('user')) || {};
+            if(user.fullName) {
+                document.getElementById('greetingText').innerHTML = `Hello, ${user.fullName} 👋`;
+            }
+        });
+
+        function saveRoleAndContinue() {
+            const selectedRole = document.querySelector('input[name="role"]:checked').value;
+            const user = JSON.parse(localStorage.getItem('user')) || {};
+            
+            // Map the radio values to nice display names
+            const roleMap = {
+                'policyholder': 'Policyholder',
+                'individual': 'Individual User',
+                'broker': 'Insurance Broker'
+            };
+            
+            user.role = roleMap[selectedRole] || selectedRole;
+            localStorage.setItem('user', JSON.stringify(user));
+            
+            window.location.href = 'ready.html';
+        }
+    </script>
+</body>
+</html>

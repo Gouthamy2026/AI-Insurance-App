@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+pydantic
+pydantic-settings
+email-validator
+sqlalchemy
+bcrypt==3.2.2
+python-dotenv
+passlib[bcrypt]
+python-jose[cryptography]
+pinecone
+requests
+groq
+python-multipart
+PyMuPDF

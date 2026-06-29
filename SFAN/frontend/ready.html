@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ready to Begin</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="welcome-v2-bg">
+    <div class="welcome-v2-card" style="justify-content: center; text-align: center; padding: 60px 40px;">
+        <div style="display:flex; justify-content:center; margin-bottom: 30px;">
+            <div style="width: 80px; height: 80px; background: rgba(255, 138, 101, 0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px rgba(255, 138, 101, 0.25);">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 6L9 17L4 12" stroke="#FF8A65" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+        </div>
+        <h1 style="font-size: 2.2rem; font-weight: 800; color: var(--text-main); margin-bottom: 15px;">Ready to Begin</h1>
+        <p style="font-size: 1rem; color: var(--text-muted); margin-bottom: 40px; line-height: 1.6;">Your workspace is prepared and waiting.</p>
+        
+        <button class="welcome-v2-btn" onclick="continueToDashboard()">
+            Get Started &rarr;
+        </button>
+
+        <div class="role-v2-dots" style="margin-top: 20px;">
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot active"></span>
+        </div>
+    </div>
+
+    <script>
+        function continueToDashboard() {
+            const user = JSON.parse(localStorage.getItem('user')) || {};
+            const role = user.role || 'Individual User';
+            
+            if (role === 'Policyholder') {
+                window.location.href = 'dashboard_policyholder.html';
+            } else if (role === 'Insurance Broker') {
+                window.location.href = 'dashboard_broker.html';
+            } else {
+                window.location.href = 'dashboard_individual.html';
+            }
+        }
+    </script>
+</body>
+</html>

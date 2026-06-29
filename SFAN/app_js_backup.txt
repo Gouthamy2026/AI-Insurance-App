@@ -1,0 +1,808 @@
+Created At: 2026-06-23T09:44:20Z
+Completed At: 2026-06-23T09:44:20Z
+File Path: `file:///c:/Users/user/Documents/AI%20Insurance%20App/SFAN/frontend/js/app.js`
+Total Lines: 1204
+Total Bytes: 63321
+Showing lines 1 to 800
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+1: document.addEventListener('DOMContentLoaded', () => {
+2:     // Check if we are on login page
+3:     const loginForm = document.getElementById('loginForm');
+4:     if (loginForm) {
+5:         // Remember Me initial load
+6:         if (localStorage.getItem('rememberedEmail')) {
+7:             document.getElementById('email').value = localStorage.getItem('rememberedEmail');
+8:             document.getElementById('rememberMe').checked = true;
+9:         }
+10: 
+11:         // Show/Hide Password
+12:         const togglePassword = document.getElementById('togglePassword');
+13:         const passwordInput = document.getElementById('password');
+14:         
+15:         if (togglePassword) {
+16:             togglePassword.addEventListener('click', function () {
+17:                 const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+18:                 passwordInput.setAttribute('type', type);
+19:                 this.textContent = type === 'password' ? '👁️' : '🙈';
+20:             });
+21:         }
+22:         
+23:         loginForm.addEventListener('submit', async (e) => {
+24:             e.preventDefault();
+25:             const email = document.getElementById('email').value;
+26:             const password = passwordInput.value;
+27:             const errorMsg = document.getElementById('errorMsg');
+28:             const rememberMe = document.getElementById('rememberMe').checked;
+29:             
+30:             try {
+31:                 const data = await ApiClient.login(email, password);
+32:                 localStorage.setItem('token', data.access_token);
+33:                 // Simple token decode for UI (Not secure, backend handles real auth)
+34:                 const payload = JSON.parse(atob(data.access_token.split('.')[1]));
+35:                 localStorage.setItem('user', JSON.stringify({ email: payload.email, role: payload.role }));
+36:                 
+37:                 if (rememberMe) {
+38:                     localStorage.setItem('rememberedEmail', email);
+39:                 } else {
+40:                     localStorage.removeItem('rememberedEmail');
+41:                 }
+42:                 
+43:                 window.location.href = 'welcome.html';
+44:             } catch (error) {
+45:                 errorMsg.textContent = error.message;
+46:             }
+47:         });
+48:         
+49: 
+50:         return;
+51:     }
+52:     
+53:     // Dashboard Logic
+54:     if (!localStorage.getItem('token')) {
+55:         window.location.href = 'index.html';
+56:         return;
+57:     }
+58:     
+59:     // Setup User Info
+60:     const user = JSON.parse(localStorage.getItem('user')) || {};
+61:     
+62:     // Strict Onboarding Verification
+63:     if (!user.fullName) {
+64:         window.location.href = 'welcome.html';
+65:         return;
+66:     }
+67:     if (!user.role || user.role === 'Analyst') { // 'Analyst' is the default mock role
+68:         window.location.href = 'role.html';
+69:         return;
+70:     }
+71:     const displayName = user.fullName ? user.fullName : user.email;
+72:     document.getElementById('user-name').textContent = displayName;
+73:     document.getElementById('user-role').textContent = user.role;
+74:     
+75:     const initialElement = document.getElementById('user-initial');
+76:     if (initialElement) {
+77:         initialElement.textContent = displayName.charAt(0).toUpperCase();
+78:     }
+79:     
+80:     // Greeting & Date Logic
+81:     const greetingTitle = document.getElementById('greeting-title');
+82:     const currentDate = document.getElementById('current-date');
+83:     if (greetingTitle && currentDate) {
+84:         const hour = new Date().getHours();
+85:         let greeting = "Good Evening";
+86:         if (hour >= 5 && hour < 12) {
+87:             greeting = "Good Morning";
+88:         } else if (hour >= 12 && hour < 17) {
+89:             greeting = "Good Afternoon";
+90:         } else {
+91:             greeting = "Good Evening";
+92:         }
+93:         
+94:         const firstName = displayName.split(' ')[0];
+95:         greetingTitle.textContent = `${greeting}, ${firstName}! 👋`;
+96:         
+97:         const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+98:         currentDate.textContent = new Date().toLocaleDateString('en-GB', options);
+99:     }
+100:     
+101:     if (user.role === 'admin') {
+102:         document.getElementById('nav-admin').style.display = 'block';
+103:     }
+104:     
+105:     // Navigation
+106:     const navItems = document.querySelectorAll('#nav-menu li');
+107:     const sections = document.querySelectorAll('.module-section');
+108:     const pageTitle = document.getElementById('page-title');
+109:     
+110:     navItems.forEach(item => {
+111:         item.addEventListener('click', () => {
+112:             if(item.classList.contains('nav-header') || item.style.display === 'none') return;
+113:             
+114:             navItems.forEach(n => n.classList.remove('active'));
+115:             item.classList.add('active');
+116:             
+117:             const targetId = item.getAttribute('data-target');
+118:             if (targetId) {
+119:                 sections.forEach(s => s.classList.remove('active'));
+120:                 const targetSection = document.getElementById(targetId);
+121:                 if (targetSection) targetSection.classList.add('active');
+122:             }
+123:             
+124:             if (pageTitle) pageTitle.textContent = item.textContent;
+125:         });
+126:     });
+127: 
+128:     // Setup Dashboard Overview based on User
+129:     const recentActivityList = document.getElementById('recent-activity-list');
+130:     const savedReportsList = document.getElementById('saved-reports-list');
+131:     
+132:     if (recentActivityList && savedReportsList) {
+133:         if (user.role === 'Individual User' || user.role === 'Policyholder') {
+134:             recentActivityList.innerHTML = `
+135:                 <div style="padding: 10px 0; border-bottom: 1px solid var(--card-border);">
+136:                     <p style="font-size: 0.9rem; font-weight: 500; color: var(--secondary);">Simplified "Comprehensive Health Plan"</p>
+137:                     <span style="font-size: 0.75rem; color: var(--text-muted);">Today, 10:30 AM</span>
+138:                 </div>
+139:                 <div style="padding: 10px 0;">
+140:                     <p style="font-size: 0.9rem; font-weight: 500; color: var(--secondary);">Checked Premium vs Benefit for "Life Shield"</p>
+141:                     <span style="font-size: 0.75rem; color: var(--text-muted);">Yesterday, 2:15 PM</span>
+142:                 </div>
+143:             `;
+144:             savedReportsList.innerHTML = `
+145:                 <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--card-border);">
+146:                     <p style="font-size: 0.9rem; font-weight: 500; color: var(--primary);">Health Policy Breakdown.pdf</p>
+147:                     <span style="font-size: 0.75rem; color: var(--text-muted); cursor: pointer;">View</span>
+148:                 </div>
+149:             `;
+150:         } else {
+151:             recentActivityList.innerHTML = `
+152:                 <div style="padding: 10px 0; border-bottom: 1px solid var(--card-border);">
+153:                     <p style="font-size: 0.9rem; font-weight: 500; color: var(--secondary);">Simplified Policy for "Client A"</p>
+154:                     <span style="font-size: 0.75rem; color: var(--text-muted);">Today, 09:00 AM</span>
+155:                 </div>
+156:                 <div style="padding: 10px 0;">
+157:                     <p style="font-size: 0.9rem; font-weight: 500; color: var(--secondary);">Risk Detection Scan: "Commercial Property"</p>
+158:                     <span style="font-size: 0.75rem; color: var(--text-muted);">Yesterday, 4:45 PM</span>
+159:                 </div>
+160:             `;
+161:             savedReportsList.innerHTML = `
+162:                 <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--card-border);">
+163:                     <p style="font-size: 0.9rem; font-weight: 500; color: var(--primary);">Q2 Scam Detection Report.pdf</p>
+164:                     <span style="font-size: 0.75rem; color: var(--text-muted); cursor: pointer;">View</span>
+165:                 </div>
+166:             `;
+167:         }
+168:     }
+169:     
+170:     // Logout
+171:     document.getElementById('logoutBtn').addEventListener('click', () => {
+172:         localStorage.removeItem('token');
+173:         localStorage.removeItem('user');
+174:         window.location.href = 'index.html';
+175:     });
+176:     
+177:     // Load Namespaces
+178:     loadNamespaces();
+179: 
+180:     
+181:     // Coverage Life Tracker Handler
+182:     const btnTrackCoverage = document.getElementById('btn-track-coverage');
+183:     const cltQueryStatus = document.getElementById('clt-query-status');
+184:     
+185:     btnTrackCoverage?.addEventListener('click', async () => {
+186:         const policySelector = document.getElementById('clt-policy-selector');
+187:         const policyId = policySelector ? policySelector.value : null;
+188:         
+189:         if (!policyId) {
+190:             return alert("Please select a policy to track.");
+191:         }
+192:         
+193:         const container = document.getElementById('clt-results-container');
+194:         const oldBtnContent = btnTrackCoverage.innerHTML;
+195:         
+196:         btnTrackCoverage.innerHTML = `<svg class="animate-spin" style="margin-right:8px; animation: spin 1s linear infinite;" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg> Scanning...`;
+197:         btnTrackCoverage.disabled = true;
+198:         
+199:         if (cltQueryStatus) {
+200:             cltQueryStatus.textContent = "AI is evaluating coverage structures and historical risks...";
+201:             cltQueryStatus.style.color = "#FF7A59";
+202:         }
+203:         
+204:         if (container) container.style.display = "none";
+205:         
+206:         try {
+207:             const data = await ApiClient.trackCoverageLife(policyId);
+208:             
+209:             // 1. Policy Identity
+210:             document.getElementById('clt-val-name').textContent = data.policy_name || "Unknown Policy";
+211:             document.getElementById('clt-val-type').textContent = data.policy_type || "Health Insurance";
+212:             document.getElementById('clt-val-status').textContent = data.status || "Active";
+213:             document.getElementById('clt-val-insurer').textContent = data.insurer || "Unknown";
+214:             document.getElementById('clt-val-coverage').textContent = data.base_coverage || "Unknown";
+215:             
+216:             const membersContainer = document.getElementById('clt-val-members');
+217:             if (data.members_covered && data.members_covered.length > 0) {
+218:                 membersContainer.innerHTML = data.members_covered.map(m => `<span style="background: #F3F4F6; color: #374151; padding: 4px 10px; border-radius: 12px; font-size: 13px; font-weight: 600;">${m}</span>`).join('');
+219:             } else {
+220:                 membersContainer.innerHTML = "Not specified";
+221:             }
+222:             
+223:             // 2. Coverage Integrity Scan
+224:             const integrityContainer = document.getElementById('clt-val-integrity');
+225:             if (data.coverage_integrity && data.coverage_integrity.length > 0) {
+226:                 integrityContainer.innerHTML = data.coverage_integrity.map(item => {
+227:                     let icon, color;
+228:                     if (item.type === 'missing') { icon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`; color = "#F59E0B"; }
+229:                     else if (item.type === 'warning') { icon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`; color = "#EF4444"; }
+230:                     else { icon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`; color = "#10B981"; }
+231:                     
+232:                     return `<li style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 16px; border-bottom: 1px solid #F3F4F6;">
+233:                         <div style="display: flex; align-items: center; gap: 12px;">
+234:                             ${icon}
+235:                             <span style="font-size: 15px; color: #374151; font-weight: 600;">${item.label}</span>
+236:                         </div>
+237:                         <span style="font-size: 14px; color: ${color}; font-weight: ${item.type === 'warning' ? '700' : '500'};">${item.value}</span>
+238:                     </li>`;
+239:                 }).join('');
+240:             } else {
+241:                 integrityContainer.innerHTML = "<li>No integrity data available.</li>";
+242:             }
+243:             
+244:             // 3. Protection Strength Index
+245:             const score = data.protection_score || { overall: 0, label: "Unknown", financial: 0, coverage: 0, family: 0 };
+246:             document.getElementById('clt-val-score-num').textContent = score.overall;
+247:             document.getElementById('clt-val-score-label').textContent = score.label;
+248:             
+249:             let overallColor = "#10B981";
+250:             if (score.overall < 50) overallColor = "#EF4444";
+251:             else if (score.overall < 75) overallColor = "#F59E0B";
+252:             
+253:             document.getElementById('clt-val-score-label').style.color = overallColor;
+254:             document.getElementById('clt-val-score-num').parentElement.parentElement.style.background = `conic-gradient(${overallColor} ${score.overall}%, #E5E7EB 0)`;
+255:             
+256:             document.getElementById('clt-val-fin-score').textContent = `${score.financial}/100`;
+257:             document.getElementById('clt-val-cov-score').textContent = `${score.coverage}/100`;
+258:             document.getElementById('clt-val-fam-score').textContent = `${score.family}/100`;
+259:             
+260:             setTimeout(() => {
+261:                 document.getElementById('clt-val-fin-bar').style.width = `${score.financial}%`;
+262:                 document.getElementById('clt-val-cov-bar').style.width = `${score.coverage}%`;
+263:                 document.getElementById('clt-val-fam-bar').style.width = `${score.family}%`;
+264:             }, 100);
+265:             
+266:             // 4. Renewal Risk Monitor
+267:             const renewal = data.renewal_risk || {};
+268:             document.getElementById('clt-val-expiry').textContent = renewal.expiry_date || "Unknown";
+269:             document.getElementById('clt-val-days').textContent = renewal.days_remaining ? `${renewal.days_remaining} Days` : "—";
+270:             document.getElementById('clt-val-urgency').textContent = renewal.urgency_status || "—";
+271:             document.getElementById('clt-val-renew-msg').textContent = renewal.message || "—";
+272:             
+273:             // 5. Claim Execution Readiness
+274:             const claimReadiness = data.claim_execution || {};
+275:             document.getElementById('clt-val-claim-score').textContent = `${claimReadiness.ease_score || 0} / 10`;
+276:             
+277:             const cashlessEl = document.getElementById('clt-val-cashless');
+278:             if (claimReadiness.cashless === 'Available') {
+279:                 cashlessEl.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Available`;
+280:                 cashlessEl.style.color = "#10B981";
+281:             } else {
+282:                 cashlessEl.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Unavailable`;
+283:                 cashlessEl.style.color = "#EF4444";
+284:             }
+285:             
+286:             document.getElementById('clt-val-complexity').textContent = claimReadiness.complexity || "Unknown";
+287:             document.getElementById('clt-val-preauth').textContent = claimReadiness.preauth_rule || "Unknown";
+288:             document.getElementById('clt-val-doc-ready').textContent = claimReadiness.doc_readiness || "Unknown";
+289:             
+290:             // 6. Hidden Risks
+291:             const risksContainer = document.getElementById('clt-val-hidden-risks');
+292:             if (data.hidden_risks && data.hidden_risks.length > 0) {
+293:                 risksContainer.innerHTML = data.hidden_risks.map(r => {
+294:                     return `<div style="background: #FEF3C7; border-left: 4px solid #F59E0B; padding: 16px; border-radius: 4px;">
+295:                         <span style="color: #92400E; font-weight: 700; font-size: 15px;">${r.title}</span>
+296:                         <p style="color: #92400E; font-size: 14px; margin-top: 6px;">${r.description}</p>
+297:                     </div>`;
+298:                 }).join('');
+299:             } else {
+300:                 risksContainer.innerHTML = "<p>No hidden risks detected.</p>";
+301:             }
+302:             
+303:             // 7. AI Recommendations
+304:             const aiRecsContainer = document.getElementById('clt-val-ai-recs');
+305:             if (data.ai_recommendations && data.ai_recommendations.length > 0) {
+306:                 aiRecsContainer.innerHTML = data.ai_recommendations.map(rec => {
+307:                     let icon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2" style="margin-top: 2px; flex-shrink: 0;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>`;
+308:                     if (rec.type === 'fix') {
+309:                         icon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" style="margin-top: 2px; flex-shrink: 0;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>`;
+310:                     }
+311:                     return `<li style="display: flex; align-items: flex-start; gap: 12px;">
+312:                         ${icon}
+313:                         <div>
+314:                             <span style="font-size: 15px; color: #1E293B; font-weight: 700; display: block; margin-bottom: 4px;">${rec.title}</span>
+315:                             <span style="font-size: 14px; color: #475569; line-height: 1.5;">${rec.description}</span>
+316:                         </div>
+317:                     </li>`;
+318:                 }).join('');
+319:             } else {
+320:                 aiRecsContainer.innerHTML = "<p>No immediate actions needed.</p>";
+321:             }
+322: 
+323:             container.style.display = "block";
+324:             
+325:             if (cltQueryStatus) {
+326:                 cltQueryStatus.textContent = "Intelligence extraction complete.";
+327:                 cltQueryStatus.style.color = "#16A34A";
+328:             }
+329:             
+330:         } catch(error) {
+331:             if (cltQueryStatus) {
+332:                 cltQueryStatus.textContent = `Error: ${error.message}`;
+333:                 cltQueryStatus.style.color = "#dc2626";
+334:             }
+335:             alert(`Analysis failed: ${error.message}`);
+336:         } finally {
+337:             btnTrackCoverage.innerHTML = oldBtnContent;
+338:             btnTrackCoverage.disabled = false;
+339:         }
+340:     });
+341: 
+342: 
+343:     // --- Claim Outcome Analyzer ---
+344:     const btnAnalyze = document.getElementById('btn-analyze-claim');
+345:     const queryStatus = document.getElementById('co-query-status');
+346:     window.coSelectedPolicies = new Set();
+347: 
+348:     btnAnalyze?.addEventListener('click', async () => {
+349:         const selectedNamespaces = Array.from(window.coSelectedPolicies);
+350:         const scenario = document.getElementById('co-scenario').value;
+351:         const container = document.getElementById('co-results-container');
+352:         const resultsEl = document.getElementById('co-simple-results');
+353:         
+354:         if(selectedNamespaces.length === 0) return alert("Select at least one policy first.");
+355:         if(!scenario) return alert("Enter a claim scenario first.");
+356:         
+357:         const oldBtnText = btnAnalyze.innerHTML;
+358:         btnAnalyze.innerHTML = `<svg class="animate-spin" style="margin-right:8px; animation: spin 1s linear infinite;" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg> Analyzing...`;
+359:         btnAnalyze.disabled = true;
+360:         
+361:         if(queryStatus) {
+362:             queryStatus.textContent = "AI is analyzing the scenario across selected policies...";
+363:             queryStatus.style.color = "#FF7A59";
+364:         }
+365:         
+366:         if (container) container.style.display = "none";
+367:         
+368:         try {
+369:             const data = await ApiClient.analyzeClaimOutcome(scenario, selectedNamespaces);
+370:             
+371:             // 1. AI Summary Banner
+372:             const summaryEl = document.getElementById('co-summary-val');
+373:             if (summaryEl) {
+374:                 summaryEl.textContent = data.claim_analysis_summary || "No summary available.";
+375:             }
+376: 
+377:             // 2. Predicted Outcome
+378:             const outcomeEl = document.getElementById('co-outcome-val');
+379:             const reasonEl = document.getElementById('co-outcome-reason');
+380:             if (outcomeEl) {
+381:                 outcomeEl.textContent = data.predicted_outcome || "Unknown";
+382:                 if (data.predicted_outcome === "Likely Approved") outcomeEl.style.color = "#16A34A";
+383:                 else if (data.predicted_outcome === "Requires Verification") outcomeEl.style.color = "#F59E0B";
+384:                 else outcomeEl.style.color = "#DC2626";
+385:             }
+386:             if (reasonEl) {
+387:                 reasonEl.textContent = data.predicted_outcome_reason || "";
+388:             }
+389: 
+390:             // 3. Approval Probability (Circular Progress)
+391:             const appValEl = document.getElementById('co-approval-val');
+392:             const appProgressEl = document.getElementById('co-approval-progress');
+393:             if (appValEl && appProgressEl) {
+394:                 const prob = parseInt(data.approval_probability) || 0;
+395:                 appValEl.textContent = `${prob}%`;
+396:                 const degrees = prob * 3.6;
+397:                 
+398:                 // Color based on prob
+399:                 let color = "#16A34A";
+400:                 if(prob < 50) color = "#DC2626";
+401:                 else if(prob < 80) color = "#F59E0B";
+402:                 
+403:                 appProgressEl.style.background = `conic-gradient(${color} ${degrees}deg, #E5E7EB 0deg)`;
+404:                 appValEl.style.color = color;
+405:                 
+406:                 const appReasonEl = document.getElementById('co-approval-reason');
+407:                 if (appReasonEl) appReasonEl.textContent = data.approval_probability_reason || "";
+408:             }
+409: 
+410:             // 4. Risk Level
+411:             const riskEl = document.getElementById('co-risk-val');
+412:             if (riskEl) {
+413:                 riskEl.textContent = data.risk_level || "Unknown";
+414:                 if (data.risk_level === "Low Risk") riskEl.style.color = "#16A34A";
+415:                 else if (data.risk_level === "Medium Risk") riskEl.style.color = "#F59E0B";
+416:                 else riskEl.style.color = "#DC2626";
+417:             }
+418:             const riskEvalEl = document.getElementById('co-risk-eval');
+419:             if (riskEvalEl) {
+420:                 if (Array.isArray(data.risk_evaluation) && data.risk_evaluation.length > 0) {
+421:                     riskEvalEl.innerHTML = data.risk_evaluation.map(f => `<li>${f}</li>`).join('');
+422:                 } else {
+423:                     riskEvalEl.innerHTML = `<li>No specific risk evaluation provided.</li>`;
+424:                 }
+425:             }
+426: 
+427:             // 5. Coverage Breakdown Cards
+428:             const coverageCardsEl = document.getElementById('co-coverage-cards');
+429:             if (coverageCardsEl && data.granular_coverage_breakdown) {
+430:                 const breakdown = data.granular_coverage_breakdown;
+431:                 let html = "";
+432:                 
+433:                 // Fully Covered
+434:                 const fully = Array.isArray(breakdown.fully_covered) ? breakdown.fully_covered : [];
+435:                 if (fully.length > 0) {
+436:                     html += `<div class="co-status-card success">
+437:                         <strong style="color: #16A34A; font-size: 14px; text-transform: uppercase;">✓ Fully Covered</strong>
+438:                         <div style="font-size: 14px; color: #4B5563; line-height: 1.5;">${fully.join('<br>')}</div>
+439:                     </div>`;
+440:                 }
+441:                 
+442:                 // Subject to Sub-limits
+443:                 const partial = Array.isArray(breakdown.subject_to_sub_limits) ? breakdown.subject_to_sub_limits : [];
+444:                 if (partial.length > 0) {
+445:                     html += `<div class="co-status-card warning">
+446:                         <strong style="color: #F59E0B; font-size: 14px; text-transform: uppercase;">⚠ Subject to Limits</strong>
+447:                         <div style="font-size: 14px; color: #4B5563; line-height: 1.5;">${partial.join('<br>')}</div>
+448:                     </div>`;
+449:                 }
+450:                 
+451:                 // Out of Scope
+452:                 const excluded = Array.isArray(breakdown.out_of_scope_excluded) ? breakdown.out_of_scope_excluded : [];
+453:                 if (excluded.length > 0) {
+454:                     html += `<div class="co-status-card danger">
+455:                         <strong style="color: #DC2626; font-size: 14px; text-transform: uppercase;">✗ Excluded</strong>
+456:                         <div style="font-size: 14px; color: #4B5563; line-height: 1.5;">${excluded.join('<br>')}</div>
+457:                     </div>`;
+458:                 }
+459:                 
+460:                 coverageCardsEl.innerHTML = html || "<div class='co-status-card'>No specific coverage details found.</div>";
+461:             }
+462: 
+463:             // 6. Recommended Actions
+464:             const guidanceEl = document.getElementById('co-guidance-val');
+465:             if (guidanceEl) {
+466:                 if (Array.isArray(data.recommended_actions) && data.recommended_actions.length > 0) {
+467:                     guidanceEl.innerHTML = data.recommended_actions.map((a, i) => `
+468:                         <div class="co-action-card">
+469:                             <div class="co-action-number">${i+1}</div>
+470:                             <div style="color: #1F2937; font-size: 14px; line-height: 1.5; padding-top: 4px;">${a}</div>
+471:                         </div>
+472:                     `).join('');
+473:                 } else {
+474:                     guidanceEl.innerHTML = `<div class="co-status-card">No specific actions identified.</div>`;
+475:                 }
+476:             }
+477: 
+478:             // 7. Strategic Claim Enhancements
+479:             const enhancementsEl = document.getElementById('co-enhancements-val');
+480:             if (enhancementsEl) {
+481:                 if (Array.isArray(data.strategic_enhancements) && data.strategic_enhancements.length > 0) {
+482:                     enhancementsEl.innerHTML = data.strategic_enhancements.map(e => `
+483:                         <div class="co-status-card" style="margin-bottom: 16px;">
+484:                             <div style="display: flex; justify-content: space-between; width: 100%;">
+485:                                 <strong style="color: #1F2937; font-size: 15px;">${e.action}</strong>
+486:                                 <span class="co-priority-badge" style="background: rgba(59, 130, 246, 0.1); color: #3B82F6;">Impact</span>
+487:                             </div>
+488:                             <div style="font-size: 14px; color: #4B5563; line-height: 1.5;">${e.expected_impact}</div>
+489:                         </div>
+490:                     `).join('');
+491:                 } else {
+492:                     enhancementsEl.innerHTML = `<div class="co-status-card">No strategic enhancements identified.</div>`;
+493:                 }
+494:             }
+495: 
+496:             // 8. Hidden Conditions & Missing Requirements
+497:             const hiddenEl = document.getElementById('co-hidden-val');
+498:             if (hiddenEl) {
+499:                 if (Array.isArray(data.hidden_clause) && data.hidden_clause.length > 0) {
+500:                     hiddenEl.innerHTML = data.hidden_clause.map(c => `
+501:                         <div class="co-status-card danger" style="margin-bottom: 12px; border-left-width: 4px;">
+502:                             <div style="font-size: 14px; color: #4B5563; line-height: 1.5;">${c}</div>
+503:                         </div>
+504:                     `).join('');
+505:                 } else {
+506:                     hiddenEl.innerHTML = `<div class="co-status-card">No hidden clauses detected.</div>`;
+507:                 }
+508:             }
+509: 
+510:             const missingReqEl = document.getElementById('co-missing-req');
+511:             if (missingReqEl) {
+512:                 if (Array.isArray(data.missing_requirements) && data.missing_requirements.length > 0) {
+513:                     missingReqEl.innerHTML = data.missing_requirements.map(req => `<li>${req}</li>`).join('');
+514:                 } else {
+515:                     missingReqEl.innerHTML = `<li>None</li>`;
+516:                 }
+517:             }
+518: 
+519:             // 9. Policy Clause Used
+520:             const clauseTextEl = document.getElementById('co-clause-text');
+521:             const clauseSourceEl = document.getElementById('co-clause-source');
+522:             if (clauseTextEl && clauseSourceEl) {
+523:                 if (data.policy_clause_used && data.policy_clause_used.clause_text) {
+524:                     clauseTextEl.textContent = data.policy_clause_used.clause_text;
+525:                     clauseSourceEl.textContent = data.policy_clause_used.source || "Unknown section";
+526:                 } else {
+527:                     clauseTextEl.textContent = "No specific clause identified.";
+528:                     clauseSourceEl.textContent = "—";
+529:                 }
+530:             }
+531:             
+532:             if (container) container.style.display = "block";
+533:             
+534:             if(queryStatus) {
+535:                 queryStatus.textContent = "Analysis complete.";
+536:                 queryStatus.style.color = "#16a34a";
+537:             }
+538: 
+539:         } catch(error) {
+540:             if(queryStatus) {
+541:                 queryStatus.textContent = `Error: ${error.message}`;
+542:                 queryStatus.style.color = "#dc2626";
+543:             }
+544:             alert(`Analysis failed: ${error.message}`);
+545:         } finally {
+546:             btnAnalyze.innerHTML = oldBtnText;
+547:             btnAnalyze.disabled = false;
+548:         }
+549:     });
+550: 
+551:     // Recommendation Engine Handler (Redesign)
+552:     const btnGenerateRec = document.getElementById('btn-generate-recommendation');
+553:     const reQueryStatus = document.getElementById('re-query-status');
+554:     window.reSelectedPolicies = new Set();
+555:     
+556:     // Global function to initialize advanced multi-select behavior
+557:     window.initAdvancedMultiSelect = function(prefix, selectedSet) {
+558:         const input = document.getElementById(`${prefix}-input`);
+559:         const dropdown = document.getElementById(`${prefix}-dropdown`);
+560:         const chipsContainer = document.getElementById(`${prefix}-chips`);
+561:         const countBadge = document.getElementById(`${prefix}-count`);
+562:         const btnSelectAll = document.getElementById(`${prefix}-select-all`);
+563:         const btnClearAll = document.getElementById(`${prefix}-clear-all`);
+564:         
+565:         if (!input || !dropdown) return;
+566:         
+567:         function updateCount() {
+568:             if(countBadge) {
+569:                 if(selectedSet.size > 0) {
+570:                     countBadge.style.display = 'inline-block';
+571:                     countBadge.textContent = `${selectedSet.size} Selected`;
+572:                 } else {
+573:                     countBadge.style.display = 'none';
+574:                 }
+575:             }
+576:         }
+577:         
+578:         function renderChips() {
+579:             if(!chipsContainer) return;
+580:             chipsContainer.innerHTML = '';
+581:             selectedSet.forEach(val => {
+582:                 const chip = document.createElement('div');
+583:                 chip.className = 're-ms-chip';
+584:                 chip.innerHTML = `
+585:                     ${val}
+586:                     <span class="re-ms-chip-remove" data-value="${val}">×</span>
+587:                 `;
+588:                 chipsContainer.appendChild(chip);
+589:             });
+590:             
+591:             // Remove chip events
+592:             chipsContainer.querySelectorAll('.re-ms-chip-remove').forEach(btn => {
+593:                 btn.addEventListener('click', (e) => {
+594:                     const val = e.target.dataset.value;
+595:                     selectedSet.delete(val);
+596:                     renderChips();
+597:                     updateCount();
+598:                     // uncheck option in dropdown
+599:                     const opt = dropdown.querySelector(`.re-ms-option[data-value="${val}"]`);
+600:                     if(opt) opt.classList.remove('selected');
+601:                 });
+602:             });
+603:         }
+604:         
+605:         // Show dropdown on focus
+606:         input.addEventListener('focus', () => dropdown.classList.add('open'));
+607:         
+608:         // Hide dropdown when clicking outside
+609:         document.addEventListener('click', (e) => {
+610:             const wrapper = document.getElementById(`${prefix}-wrapper`);
+611:             if (wrapper && !wrapper.contains(e.target) && e.target !== input && e.target !== btnSelectAll && e.target !== btnClearAll) {
+612:                 dropdown.classList.remove('open');
+613:             }
+614:         });
+615:         
+616:         // Filter options
+617:         input.addEventListener('input', (e) => {
+618:             const filter = e.target.value.toLowerCase();
+619:             const options = dropdown.querySelectorAll('.re-ms-option');
+620:             options.forEach(opt => {
+621:                 const text = opt.querySelector('span').textContent.toLowerCase();
+622:                 opt.style.display = text.includes(filter) ? 'flex' : 'none';
+623:             });
+624:         });
+625:         
+626:         // Select All / Clear All
+627:         if(btnSelectAll) {
+628:             btnSelectAll.addEventListener('click', (e) => {
+629:                 e.stopPropagation();
+630:                 dropdown.querySelectorAll('.re-ms-option').forEach(opt => {
+631:                     if (opt.style.display !== 'none') {
+632:                         selectedSet.add(opt.dataset.value);
+633:                         opt.classList.add('selected');
+634:                     }
+635:                 });
+636:                 renderChips();
+637:                 updateCount();
+638:             });
+639:         }
+640:         if(btnClearAll) {
+641:             btnClearAll.addEventListener('click', (e) => {
+642:                 e.stopPropagation();
+643:                 selectedSet.clear();
+644:                 dropdown.querySelectorAll('.re-ms-option').forEach(opt => {
+645:                     opt.classList.remove('selected');
+646:                 });
+647:                 renderChips();
+648:                 updateCount();
+649:             });
+650:         }
+651:         
+652:         // Handle selection
+653:         const options = dropdown.querySelectorAll('.re-ms-option');
+654:         options.forEach(opt => {
+655:             // Remove old listener to avoid duplicates
+656:             const clone = opt.cloneNode(true);
+657:             opt.parentNode.replaceChild(clone, opt);
+658:             
+659:             clone.addEventListener('click', (e) => {
+660:                 e.stopPropagation(); // prevent document click
+661:                 const val = clone.dataset.value;
+662:                 if (selectedSet.has(val)) {
+663:                     selectedSet.delete(val);
+664:                     clone.classList.remove('selected');
+665:                 } else {
+666:                     selectedSet.add(val);
+667:                     clone.classList.add('selected');
+668:                 }
+669:                 renderChips();
+670:                 updateCount();
+671:                 input.focus();
+672:             });
+673:             // restore selected state if re-rendered
+674:             if(selectedSet.has(clone.dataset.value)) {
+675:                 clone.classList.add('selected');
+676:             }
+677:         });
+678:         
+679:         renderChips();
+680:         updateCount();
+681:     };
+682:     
+683:     btnGenerateRec?.addEventListener('click', async () => {
+684:         const selectedNamespaces = Array.from(window.reSelectedPolicies);
+685:         
+686:         if (selectedNamespaces.length < 2) {
+687:             return alert("Please select at least two policies to compare.");
+688:         }
+689:         
+690:         const age = document.getElementById('re-age').value;
+691:         const familySize = document.getElementById('re-family').value;
+692:         const budget = document.getElementById('re-budget').value;
+693:         const insuranceType = document.getElementById('re-type').value;
+694:         const prefs = document.getElementById('re-prefs').value;
+695:         
+696:         let userProfile = null;
+697:         if (age || familySize || budget || insuranceType || prefs) {
+698:             userProfile = {
+699:                 age: age ? parseInt(age) : null,
+700:                 family_size: familySize ? parseInt(familySize) : null,
+701:                 budget: budget ? parseFloat(budget) : null,
+702:                 insurance_type: insuranceType || null,
+703:                 coverage_preferences: prefs || null
+704:             };
+705:         }
+706:         
+707:         const container = document.getElementById('re-results-container');
+708:         const oldBtnContent = btnGenerateRec.innerHTML;
+709:         
+710:         btnGenerateRec.innerHTML = `<svg class="animate-spin" style="margin-right:8px; animation: spin 1s linear infinite;" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg> Analyzing...`;
+711:         btnGenerateRec.disabled = true;
+712:         
+713:         if (reQueryStatus) {
+714:             reQueryStatus.textContent = "AI is comparing policies and generating premium insights...";
+715:             reQueryStatus.style.color = "#FF7A59";
+716:         }
+717:         
+718:         if (container) container.style.display = "none";
+719:         
+720:         try {
+721:             const data = await ApiClient.generateRecommendation(selectedNamespaces, userProfile);
+722:             if (data.error) throw new Error(data.error);
+723: 
+724:             // 1. Best Policy Match (Hero Card)
+725:             if (data.best_policy_match) {
+726:                 document.getElementById('re-best-match-name').textContent = data.best_policy_match.policy_name || "—";
+727:                 document.getElementById('re-best-match-reason').textContent = data.best_policy_match.reason || "";
+728:             }
+729:             
+730:             // 2. AI Summary (Bulleted List)
+731:             if (data.ai_recommendation_summary) {
+732:                 let items = data.ai_recommendation_summary.split(/\n\n+/).filter(i => i.trim() !== '');
+733:                 let summaryHTML = `<div class="re-summary-list">`;
+734:                 items.forEach(item => {
+735:                     // check if it looks like a list item
+736:                     let text = item.replace(/^[-\*•]\s*/, '').trim();
+737:                     summaryHTML += `
+738:                         <div class="re-summary-item">
+739:                             <div class="re-summary-icon">
+740:                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+741:                             </div>
+742:                             <div>${text}</div>
+743:                         </div>
+744:                     `;
+745:                 });
+746:                 summaryHTML += `</div>`;
+747:                 document.getElementById('re-ai-summary').innerHTML = summaryHTML;
+748:             }
+749:             
+750:             // 3. Advantage Matrix (Cards)
+751:             const matrixBody = document.getElementById('re-matrix-body');
+752:             if (matrixBody && data.coverage_advantage_matrix && data.coverage_advantage_matrix.length > 0) {
+753:                 matrixBody.innerHTML = data.coverage_advantage_matrix.map(row => {
+754:                     let isTie = row.winner === 'Tie' || row.winner.toLowerCase().includes('tie');
+755:                     let p1Winner = !isTie && row.winner.includes(row.policy_1_name);
+756:                     let p2Winner = !isTie && !p1Winner; // rough heuristic if string matches
+757:                     
+758:                     return `
+759:                     <div class="re-comparison-card">
+760:                         <div class="re-comparison-category">${row.category}</div>
+761:                         
+762:                         <div class="re-comparison-row">
+763:                             <span class="re-comparison-policy">${row.policy_1_name}</span>
+764:                             ${p1Winner ? `<span class="re-comparison-winner"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Winner</span>` : (isTie ? `<span style="font-size:12px; color:#6B7280; font-weight:600;">Tie</span>` : '')}
+765:                         </div>
+766:                         
+767:                         <div class="re-comparison-row" style="margin-bottom:0;">
+768:                             <span class="re-comparison-policy">${row.policy_2_name}</span>
+769:                             ${p2Winner ? `<span class="re-comparison-winner"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Winner</span>` : (isTie ? `<span style="font-size:12px; color:#6B7280; font-weight:600;">Tie</span>` : '')}
+770:                         </div>
+771:                     </div>
+772:                 `}).join('');
+773:             }
+774:             
+775:             // 4. Value Efficiency Score (Animated Bars)
+776:             const valueScoresContainer = document.getElementById('re-value-scores');
+777:             if (valueScoresContainer && data.value_efficiency_score) {
+778:                 valueScoresContainer.innerHTML = data.value_efficiency_score.map(item => {
+779:                     let match = item.score.toString().match(/\d+(\.\d+)?/g);
+780:                     let percent = 50;
+781:                     if (match && match.length >= 2) percent = (parseFloat(match[0]) / parseFloat(match[1])) * 100;
+782:                     else if (match) percent = parseFloat(match[0]);
+783:                     if (percent <= 10) percent *= 10; 
+784:                     percent = Math.min(100, Math.max(0, percent));
+785:                     
+786:                     return `
+787:                     <div style="margin-bottom: 20px;">
+788:                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+789:                             <span style="font-size: 15px; font-weight: 700; color: #1F2937;">${item.policy_name}</span>
+790:                             <span style="font-weight: 800; color: #FF7A59; font-size: 16px;">${item.score}</span>
+791:                         </div>
+792:                         <div style="font-size: 13px; color: #4B5563; margin-bottom: 12px; line-height: 1.5;">${item.explanation}</div>
+793:                         <div class="re-bar-container">
+794:                             <div class="re-bar-fill" style="width: 0%; background: linear-gradient(90deg, #FF9A76 0%, #FF7A59 100%);" data-target="${percent}"></div>
+795:                         </div>
+796:                     </div>
+797:                 `}).join('');
+798:                 
+799:                 // Trigger animation after render
+800:                 setTimeout(() => {
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

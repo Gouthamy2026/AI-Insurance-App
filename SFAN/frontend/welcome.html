@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to SFAN Insurance Intelligence</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="welcome-v2-bg">
+    <div class="welcome-v2-card">
+        
+        <!-- Logo -->
+        <div class="welcome-v2-illustration" style="margin-top: 10px; margin-bottom: 30px;">
+            <img src="assets/sfan_logo.png" alt="SFAN Logo" style="width: 200px; height: auto; object-fit: contain;">
+        </div>
+
+        <!-- Typography -->
+        <div class="welcome-v2-text">
+            <h1>Welcome to<br><span class="highlight-gradient">SFAN Insurance Intelligence</span></h1>
+            <p>Your AI-powered platform for smarter insurance decisions, insights, and support.</p>
+        </div>
+
+        <!-- Input Section -->
+        <div class="welcome-v2-input-group" style="width: 100%; margin-bottom: 30px;">
+            <label style="display: block; text-align: left; font-size: 0.95rem; color: var(--text-main); font-weight: 600; margin-bottom: 8px;">Full Name</label>
+            <div style="position: relative; width: 100%;">
+                <div style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-muted); display: flex; align-items: center; pointer-events: none;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                </div>
+                <input type="text" id="userName" class="standard-input" placeholder="e.g. John Doe" autocomplete="off">
+            </div>
+        </div>
+
+        <!-- Action -->
+        <button class="welcome-v2-btn" onclick="saveNameAndContinue()">
+            Continue &rarr;
+        </button>
+
+        <!-- Footer -->
+        <div class="welcome-v2-footer">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 22S19 18 19 12V5L12 2L5 5V12C5 18 12 22 12 22Z" fill="#FF8A65" stroke="#FF8A65" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>Your information is secure and confidential</span>
+        </div>
+
+    </div>
+
+    <script>
+        function saveNameAndContinue() {
+            const nameInput = document.getElementById('userName').value;
+            if(nameInput) {
+                const user = JSON.parse(localStorage.getItem('user')) || {};
+                user.fullName = nameInput;
+                localStorage.setItem('user', JSON.stringify(user));
+            }
+            window.location.href = 'role.html';
+        }
+    </script>
+</body>
+</html>
