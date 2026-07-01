@@ -15,20 +15,30 @@ export const AiAssetCoverageAdvisor = () => {
         location: '',
         confidenceScore: 0,
         matchScore: 0,
-        eligibilityCount: 0,
-        totalCovers: 0,
-        
+        eligibleCovers: [],
+        exclusionHotspots: [],
+        scenarios: [],
         coverageAlignment: 0,
         sumInsuredMatch: 0,
         policyBenefits: 0,
-        premiumSuitability: 0
+        premiumSuitability: 0,
+        imageBase64: null
     };
 
     window.AiAssetCoverageActions = {
         state: existingState,
-        uploadImage: () => {
-            window.AiAssetCoverageActions.state.imageUploaded = true;
-            document.getElementById('dashboard-root').innerHTML = AiAssetCoverageAdvisor();
+        uploadImage: (inputElement) => {
+            if (inputElement.files && inputElement.files[0]) {
+                const file = inputElement.files[0];
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    window.AiAssetCoverageActions.state.imageUploaded = true;
+                    window.AiAssetCoverageActions.state.fileName = file.name;
+                    window.AiAssetCoverageActions.state.imageBase64 = reader.result;
+                    document.getElementById('dashboard-root').innerHTML = AiAssetCoverageAdvisor();
+                };
+                reader.readAsDataURL(file);
+            }
         },
         reset: () => {
             window.AiAssetCoverageActions.state = {
@@ -44,12 +54,14 @@ export const AiAssetCoverageAdvisor = () => {
                 location: '',
                 confidenceScore: 0,
                 matchScore: 0,
-                eligibilityCount: 0,
-                totalCovers: 0,
+                eligibleCovers: [],
+                exclusionHotspots: [],
+                scenarios: [],
                 coverageAlignment: 0,
                 sumInsuredMatch: 0,
                 policyBenefits: 0,
-                premiumSuitability: 0
+                premiumSuitability: 0,
+                imageBase64: null
             };
             document.getElementById('dashboard-root').innerHTML = AiAssetCoverageAdvisor();
         },
@@ -72,33 +84,72 @@ export const AiAssetCoverageAdvisor = () => {
             
             document.getElementById('dashboard-root').innerHTML = AiAssetCoverageAdvisor();
 
-            // Mock API call
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('http://127.0.0.1:8000/intelligence/asset-coverage', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        bank: bank,
+                        policy: policy,
+                        notes: notes,
+                        image: window.AiAssetCoverageActions.state.imageBase64
+                    })
+                });
 
-            const s = window.AiAssetCoverageActions.state;
-            s.isAnalyzing = false;
-            s.isAnalyzed = true;
-            
-            s.assetType = "Identified Asset";
-            s.constructionType = "Standard Structure";
-            s.usageType = "Personal Use";
-            s.location = "Verified Location";
-            s.confidenceScore = 95;
-            
-            s.matchScore = 85;
-            s.eligibilityCount = 5;
-            s.totalCovers = 5;
-            
-            s.coverageAlignment = 90;
-            s.sumInsuredMatch = 80;
-            s.policyBenefits = 85;
-            s.premiumSuitability = 85;
+                const data = await response.json();
 
-            document.getElementById('dashboard-root').innerHTML = AiAssetCoverageAdvisor();
+                if (!response.ok) {
+                    alert('Analysis failed: ' + (data.error || 'Server error'));
+                    window.AiAssetCoverageActions.state.isAnalyzing = false;
+                    document.getElementById('dashboard-root').innerHTML = AiAssetCoverageAdvisor();
+                    return;
+                }
+
+                const s = window.AiAssetCoverageActions.state;
+                s.isAnalyzing = false;
+                s.isAnalyzed = true;
+                
+                s.assetType = data.assetType || "Unknown";
+                s.constructionType = data.constructionType || "Unknown";
+                s.usageType = data.usageType || "Unknown";
+                s.location = data.location || "Unknown";
+                s.confidenceScore = data.confidenceScore || 0;
+                
+                s.matchScore = data.matchScore || 0;
+                s.eligibleCovers = data.eligibleCovers || [];
+                s.exclusionHotspots = data.exclusionHotspots || [];
+                s.scenarios = data.scenarios || [];
+                
+                s.coverageAlignment = data.coverageAlignment || 0;
+                s.sumInsuredMatch = data.sumInsuredMatch || 0;
+                s.policyBenefits = data.policyBenefits || 0;
+                s.premiumSuitability = data.premiumSuitability || 0;
+
+                document.getElementById('dashboard-root').innerHTML = AiAssetCoverageAdvisor();
+            } catch (error) {
+                alert('Network error: ' + error.message);
+                window.AiAssetCoverageActions.state.isAnalyzing = false;
+                document.getElementById('dashboard-root').innerHTML = AiAssetCoverageAdvisor();
+            }
         }
     };
 
     const s = window.AiAssetCoverageActions.state;
+    
+    const namespaces = [
+        "regulatory_governance",
+        "Comprehensive Car Insurance",
+        "health_policy",
+        "home_folder",
+        "banking_governance",
+        "travel_policy",
+        "life_wealth_policy",
+        "vehicle_policy"
+    ];
 
     const inputCardStyle = `background: #FAFAFA; border-radius: 12px; border: 1px solid #E5E7EB; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); padding: 20px; display: flex; flex-direction: column; transition: all 0.3s ease;`;
     const resultCardStyle = `background: #FAFAFA; border-radius: 16px; border: 1px solid #E5E7EB; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); padding: 20px; display: flex; flex-direction: column; transition: all 0.3s ease;`;
@@ -136,19 +187,21 @@ export const AiAssetCoverageAdvisor = () => {
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
                             1. Upload Asset Image
                         </div>
-                        <div style="display: flex; gap: 12px; height: 100px;">
+                        <div style="display: flex; flex-direction: column; justify-content: center; height: 100px;">
+                            <label style="background: #FAFAFA; border: 1px dashed #6D28D9; border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 8px; height: 48px; cursor: pointer; color: #6D28D9; transition: all 0.2s; font-weight: 600; font-size: 14px;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                                Upload Image
+                                <input type="file" accept="image/*" style="display: none;" onchange="window.AiAssetCoverageActions.uploadImage(this)">
+                            </label>
                             ${s.imageUploaded ? `
-                                <div style="flex: 1; background: #E5E7EB; border-radius: 8px; overflow: hidden; position: relative;">
-                                    <div style="position: absolute; inset: 0; background: linear-gradient(45deg, #CBD5E1, #94A3B8);"></div>
-                                    <div style="position: absolute; bottom: 8px; left: 8px; font-size: 10px; background: rgba(255,255,255,0.8); padding: 2px 6px; border-radius: 4px;">Asset Detected</div>
+                                <div style="margin-top: 12px; font-size: 12px; color: #10B981; display: flex; align-items: center; gap: 4px;">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                    ${s.fileName}
                                 </div>
-                            ` : ''}
-                            <button onclick="window.AiAssetCoverageActions.uploadImage()" style="flex: ${s.imageUploaded ? '0.5' : '1'}; background: #FAFAFA; border: 1px dashed #D1D5DB; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; color: #6B7280; transition: all 0.2s;">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                                <span style="font-size: 12px; font-weight: 500; margin-top: 8px;">${s.imageUploaded ? 'Upload More' : 'Upload Image'}</span>
-                            </button>
+                            ` : `
+                                <div style="margin-top: 12px; font-size: 12px; color: #6B7280;">No image selected</div>
+                            `}
                         </div>
-                        <div style="font-size: 12px; color: #6B7280; margin-top: 12px;">${s.imageUploaded ? '1 image uploaded' : 'No images uploaded'}</div>
                     </div>
 
                     <!-- 2. Select Bank -->
@@ -159,8 +212,14 @@ export const AiAssetCoverageAdvisor = () => {
                         </div>
                         <select id="aa-bank" style="${selectStyle} height: 100%;">
                             <option value="">Select a Bank...</option>
-                            <option value="Bank A" ${s.bank === 'Bank A' ? 'selected' : ''}>Partner Bank A</option>
-                            <option value="Bank B" ${s.bank === 'Bank B' ? 'selected' : ''}>Partner Bank B</option>
+                            <option value="SBI Bank" ${s.bank === 'SBI Bank' ? 'selected' : ''}>SBI Bank</option>
+                            <option value="Canara Bank" ${s.bank === 'Canara Bank' ? 'selected' : ''}>Canara Bank</option>
+                            <option value="ICICI Bank" ${s.bank === 'ICICI Bank' ? 'selected' : ''}>ICICI Bank</option>
+                            <option value="HDFC Bank" ${s.bank === 'HDFC Bank' ? 'selected' : ''}>HDFC Bank</option>
+                            <option value="Axis Bank" ${s.bank === 'Axis Bank' ? 'selected' : ''}>Axis Bank</option>
+                            <option value="Bank of Baroda" ${s.bank === 'Bank of Baroda' ? 'selected' : ''}>Bank of Baroda</option>
+                            <option value="IndusInd Bank" ${s.bank === 'IndusInd Bank' ? 'selected' : ''}>IndusInd Bank</option>
+                            <option value="Kotak Mahindra Bank" ${s.bank === 'Kotak Mahindra Bank' ? 'selected' : ''}>Kotak Mahindra Bank</option>
                         </select>
                     </div>
 
@@ -172,8 +231,7 @@ export const AiAssetCoverageAdvisor = () => {
                         </div>
                         <select id="aa-policy" style="${selectStyle} height: 100%;">
                             <option value="">Select a Policy...</option>
-                            <option value="Comprehensive" ${s.policy === 'Comprehensive' ? 'selected' : ''}>Comprehensive Asset Policy</option>
-                            <option value="Basic" ${s.policy === 'Basic' ? 'selected' : ''}>Basic Asset Protection</option>
+                            ${namespaces.map(ns => `<option value="${ns}" ${s.policy === ns ? 'selected' : ''}>${ns.replace(/_/g, ' ')}</option>`).join('')}
                         </select>
                     </div>
 
@@ -203,7 +261,7 @@ export const AiAssetCoverageAdvisor = () => {
                         <h2 style="font-size: 20px; font-weight: 800; color: #111827; margin: 0;">Analysis Results</h2>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1.2fr 1.2fr; gap: 20px; margin-bottom: 20px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
                         
                         <!-- Asset Identification -->
                         <div style="${resultCardStyle}">
@@ -240,38 +298,16 @@ export const AiAssetCoverageAdvisor = () => {
                                 Insurance Eligibility
                             </div>
                             <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
-                                ${['Property Cover', 'Fire Protection', 'Natural Disaster', 'Theft Protection', 'Contents Cover'].map(item => `
+                                ${(s.eligibleCovers && s.eligibleCovers.length > 0) ? s.eligibleCovers.map(item => `
                                     <div style="display: flex; align-items: center; gap: 12px; font-size: 14px; color: #374151;">
                                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
                                         ${item}
                                     </div>
-                                `).join('')}
+                                `).join('') : `<div style="font-size: 13px; color: #6B7280;">No eligible covers found in policy.</div>`}
                             </div>
                             <div style="margin-top: auto; background: #ECFDF5; border: 1px solid #D1FAE5; padding: 12px; border-radius: 8px; display: flex; align-items: center; gap: 8px; color: #059669; font-size: 13px; font-weight: 600;">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                You are eligible for ${s.eligibilityCount} major insurance covers.
-                            </div>
-                        </div>
-
-                        <!-- Coverage Opportunity Matrix -->
-                        <div style="${resultCardStyle}">
-                            <div style="display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; color: #6D28D9; margin-bottom: 20px;">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-                                Coverage Opportunity Matrix
-                            </div>
-                            <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
-                                ${['Structure Cover', 'Fire & Allied Perils', 'Natural Disaster Cover', 'Burglary & Theft', 'Personal Liability'].map(item => `
-                                    <div style="display: flex; align-items: center; justify-content: space-between; font-size: 14px; color: #374151;">
-                                        <div style="display: flex; align-items: center; gap: 12px;">
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                                            ${item}
-                                        </div>
-                                        <span style="background: #ECFDF5; color: #059669; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 12px;">Available</span>
-                                    </div>
-                                `).join('')}
-                            </div>
-                            <div style="margin-top: auto; background: #F5F3FF; padding: 12px; border-radius: 8px; color: #6D28D9; font-size: 13px; font-weight: 600; text-align: center;">
-                                ${s.totalCovers} / ${s.totalCovers} covers available for you
+                                You are eligible for ${s.eligibleCovers ? s.eligibleCovers.length : 0} major insurance covers.
                             </div>
                         </div>
 
@@ -327,18 +363,12 @@ export const AiAssetCoverageAdvisor = () => {
                                 Exclusion Hotspots
                             </div>
                             <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
-                                <div style="display: flex; gap: 12px; font-size: 13px; color: #374151;">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg>
-                                    Wear and tear, gradual deterioration not covered.
-                                </div>
-                                <div style="display: flex; gap: 12px; font-size: 13px; color: #374151;">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg>
-                                    Damage due to general environmental factors may be treated separately.
-                                </div>
-                                <div style="display: flex; gap: 12px; font-size: 13px; color: #374151;">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg>
-                                    Loss or damage due to unauthorized structural changes.
-                                </div>
+                                ${(s.exclusionHotspots && s.exclusionHotspots.length > 0) ? s.exclusionHotspots.map(item => `
+                                    <div style="display: flex; gap: 12px; font-size: 13px; color: #374151;">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg>
+                                        ${item}
+                                    </div>
+                                `).join('') : `<div style="font-size: 13px; color: #6B7280;">No major exclusions identified.</div>`}
                             </div>
                             <div style="margin-top: auto; background: #FFFBEB; padding: 12px; border-radius: 8px; color: #D97706; font-size: 12px; font-weight: 500; border: 1px solid #FEF3C7;">
                                 Review policy terms for complete exclusion details.
@@ -352,34 +382,19 @@ export const AiAssetCoverageAdvisor = () => {
                                 Coverage Scenario Simulator
                             </div>
                             <div style="display: flex; flex-direction: column; gap: 16px;">
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <div style="display: flex; align-items: center; gap: 10px; font-size: 14px; color: #111827; font-weight: 500;">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2"><path d="M12 2c0 0-6 6-6 12a6 6 0 0 0 12 0c0-6-6-12-6-12z"></path></svg>
-                                        Fire Incident
-                                    </div>
-                                    <span style="font-size: 12px; font-weight: 600; color: #10B981;">Covered</span>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <div style="display: flex; align-items: center; gap: 10px; font-size: 14px; color: #111827; font-weight: 500;">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2"><path d="M12 2v20"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-                                        Water Damage
-                                    </div>
-                                    <span style="font-size: 12px; font-weight: 600; color: #F59E0B;">Partial Cover</span>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <div style="display: flex; align-items: center; gap: 10px; font-size: 14px; color: #111827; font-weight: 500;">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                                        Burglary / Theft
-                                    </div>
-                                    <span style="font-size: 12px; font-weight: 600; color: #10B981;">Covered</span>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <div style="display: flex; align-items: center; gap: 10px; font-size: 14px; color: #111827; font-weight: 500;">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2"><path d="M3 12h18"></path><path d="M12 3v18"></path><path d="M8 8l8 8"></path><path d="M16 8l-8 8"></path></svg>
-                                        Structural Damage
-                                    </div>
-                                    <span style="font-size: 12px; font-weight: 600; color: #DC2626;">Additional Cover Required</span>
-                                </div>
+                                ${(s.scenarios && s.scenarios.length > 0) ? s.scenarios.map(sc => {
+                                    let iconColor = sc.status.toLowerCase().includes('not') ? '#EF4444' : sc.status.toLowerCase().includes('partial') ? '#3B82F6' : '#111827';
+                                    let statusColor = sc.status.toLowerCase().includes('not') ? '#DC2626' : sc.status.toLowerCase().includes('partial') ? '#F59E0B' : '#10B981';
+                                    return `
+                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                            <div style="display: flex; align-items: center; gap: 10px; font-size: 14px; color: #111827; font-weight: 500;">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${iconColor}" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                                ${sc.name}
+                                            </div>
+                                            <span style="font-size: 12px; font-weight: 600; color: ${statusColor};">${sc.status}</span>
+                                        </div>
+                                    `;
+                                }).join('') : `<div style="font-size: 13px; color: #6B7280;">No scenarios generated.</div>`}
                             </div>
                         </div>
 

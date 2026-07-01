@@ -4,7 +4,9 @@ export const CareEligibilityEngine = () => {
         isAnalyzing: false,
         isAnalyzed: false,
         insuranceType: '',
+        insuranceType: '',
         policy: '',
+        bankName: '',
         provider: '',
         patientProfile: '',
         condition: '',
@@ -29,6 +31,7 @@ export const CareEligibilityEngine = () => {
         analyze: async () => {
             const insuranceType = document.getElementById('ce-insurance-type').value;
             const policy = document.getElementById('ce-policy').value;
+            const bankName = document.getElementById('ce-bank')?.value || '';
             const profile = document.getElementById('ce-profile').value.trim();
 
             const condition = document.getElementById('ce-condition').value.trim();
@@ -42,7 +45,7 @@ export const CareEligibilityEngine = () => {
             const policyType = document.getElementById('ce-policy-type').value;
             const policyAge = document.getElementById('ce-policy-age').value.trim();
 
-            if (!insuranceType || !policy || !profile || !condition || !severity || !conditionType || !treatmentType || !admissionType || !department || !sumInsured || !policyAge) { 
+            if (!insuranceType || !policy || !bankName || !profile || !condition || !severity || !conditionType || !treatmentType || !admissionType || !department || !sumInsured || !policyAge) { 
                 alert('Please fill out all fields before generating analysis.'); 
                 return; 
             }
@@ -50,30 +53,78 @@ export const CareEligibilityEngine = () => {
             window.CareEligibilityActions.state = {
                 ...window.CareEligibilityActions.state,
                 isAnalyzing: true,
-                insuranceType, policy, patientProfile: profile,
+                insuranceType, policy, bankName, patientProfile: profile,
                 condition, severity, conditionType, treatmentType, admissionType, department,
                 sumInsured, policyType, policyAge
             };
             
             document.getElementById('dashboard-root').innerHTML = CareEligibilityEngine();
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('http://127.0.0.1:8000/intelligence/care-eligibility', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        bank_name: bankName,
+                        insurance_type: insuranceType,
+                        namespace: policy,
+                        patient_profile: profile,
+                        condition: condition,
+                        severity: severity,
+                        condition_type: conditionType,
+                        treatment_type: treatmentType,
+                        admission_type: admissionType,
+                        department: department,
+                        sum_insured: sumInsured,
+                        policy_type: policyType,
+                        policy_age: policyAge
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    alert('Analysis failed: ' + (data.error || 'Server error'));
+                    window.CareEligibilityActions.state.isAnalyzing = false;
+                    document.getElementById('dashboard-root').innerHTML = CareEligibilityEngine();
+                    return;
+                }
 
-            // Mock API call
-            await new Promise(resolve => setTimeout(resolve, 1500));
+                const s = window.CareEligibilityActions.state;
+                s.isAnalyzing = false;
+                s.isAnalyzed = true;
+                
+                s.eligibilityStatus = data.eligibility_status || "Requires Review";
+                s.confidence = data.confidence || "Low Confidence";
+                s.evidence = data.evidence || "No evidence available.";
+                s.sumInsured = data.sum_insured || "Coverage amount unavailable in retrieved documents.";
+                s.coverageLimits = data.coverage_limits || "Coverage amount unavailable in retrieved documents.";
+                s.subLimits = data.sub_limits || "Coverage amount unavailable in retrieved documents.";
+                s.coPay = data.co_pay || "Coverage amount unavailable in retrieved documents.";
+                s.coverageGaps = data.coverage_gaps || [];
+                s.actionPlan = data.action_plan || [];
+                s.policyRulesApplied = data.policy_rules_applied || [];
 
-            const s = window.CareEligibilityActions.state;
-            s.isAnalyzing = false;
-            s.isAnalyzed = true;
-            
-            s.policyName = "Tata AIG General Insurance";
-            s.policyType = "Comprehensive (Health Insurance)";
-            s.sumInsured = "₹ 7,50,000";
-            
-            // parse age and gender from profile string if possible, or fallback
-            s.age = "29 Years";
-            s.gender = "Male";
-            s.risk = "Low";
-            s.matchScore = 88;
-
+                document.getElementById('dashboard-root').innerHTML = CareEligibilityEngine();
+            } catch (error) {
+                alert('Network error: ' + error.message);
+                window.CareEligibilityActions.state.isAnalyzing = false;
+                document.getElementById('dashboard-root').innerHTML = CareEligibilityEngine();
+            }
+        },
+        reset: () => {
+            window.CareEligibilityActions.state = {
+                isAnalyzing: false,
+                isAnalyzed: false,
+                insuranceType: '', policy: '', bankName: '', provider: '', patientProfile: '',
+                condition: '', severity: '', conditionType: '', treatmentType: '',
+                admissionType: '', department: '',
+                matchScore: 0, policyName: '', policyType: '', sumInsured: '',
+                age: '', gender: '', risk: ''
+            };
             document.getElementById('dashboard-root').innerHTML = CareEligibilityEngine();
         }
     };
@@ -120,8 +171,9 @@ export const CareEligibilityEngine = () => {
                 </div>
                 <p style="color: #4B5563; font-size: 13px; margin: -16px 0 0 0; font-weight: 500;">Smart insights on coverage, eligibility and costs for your medical scenario.</p>
 
-                <!-- Input Section Row 1: Selecting Options (Like Claim Outcome Analyzer) -->
-                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
+                <!-- Input Section Row 1: Selecting Options -->
+                ${!s.isAnalyzed ? `
+                <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px;">
                     <div style="${inputCardStyle}">
                         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 14px; font-weight: 700; color: #111827;">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"></rect><path d="M12 7v4"></path></svg>
@@ -147,8 +199,26 @@ export const CareEligibilityEngine = () => {
 
                     <div style="${inputCardStyle}">
                         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 14px; font-weight: 700; color: #111827;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"></rect><path d="M12 7v4"></path></svg>
+                            3. Select Bank
+                        </div>
+                        <select id="ce-bank" style="${selectStyle}">
+                            <option value="SBI Bank" selected>SBI Bank</option>
+                            <option value="Canara Bank">Canara Bank</option>
+                            <option value="ICICI Bank">ICICI Bank</option>
+                            <option value="HDFC Bank">HDFC Bank</option>
+                            <option value="Axis Bank">Axis Bank</option>
+                            <option value="IDFC FIRST Bank">IDFC FIRST Bank</option>
+                            <option value="Bank of Baroda">Bank of Baroda</option>
+                            <option value="IndusInd Bank">IndusInd Bank</option>
+                            <option value="Kotak Mahindra Bank">Kotak Mahindra Bank</option>
+                        </select>
+                    </div>
+
+                    <div style="${inputCardStyle}">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 14px; font-weight: 700; color: #111827;">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-                            3. Policy Details
+                            4. Policy Details
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 8px;">
                             <input type="text" id="ce-sum-insured" style="${inputStyle} padding: 8px;" placeholder="Sum Insured (e.g. ₹5,00,000)" value="₹5,00,000">
@@ -164,7 +234,7 @@ export const CareEligibilityEngine = () => {
                     <div style="${inputCardStyle}">
                         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 14px; font-weight: 700; color: #111827;">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                            4. Patient Profile
+                            5. Patient Profile
                         </div>
                         <input type="text" id="ce-profile" style="${inputStyle}" placeholder="e.g. 29 Years, Male" value="29 Years, Male">
                     </div>
@@ -217,8 +287,7 @@ export const CareEligibilityEngine = () => {
                     </div>
                 </div>
 
-                ${!s.isAnalyzed ? `
-                <div style="display: flex; justify-content: flex-end;">
+                <div style="display: flex; justify-content: flex-end; margin-top: 24px;">
                     <button onclick="window.CareEligibilityActions.analyze()" style="background: #6D28D9; color: #FFFFFF; border: none; padding: 12px 28px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
                         ${s.isAnalyzing ? 'Analyzing Data...' : 'Generate Analysis'}
                     </button>
@@ -226,7 +295,12 @@ export const CareEligibilityEngine = () => {
                 ` : ''}
 
                 ${s.isAnalyzed ? `
-                <div style="padding: 24px 0; animation: fadeIn 0.5s ease;">
+                <div style="display: flex; justify-content: flex-end; margin-bottom: 24px;">
+                    <button onclick="window.CareEligibilityActions.reset()" style="background: #E5E7EB; color: #374151; border: 1px solid #D1D5DB; padding: 10px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                        ← New Assessment
+                    </button>
+                </div>
+                <div style="padding: 24px 0; animation: fadeIn 0.5s ease; border-top: 1px solid #E5E7EB;">
                     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 28px;">
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6D28D9" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
                         <h2 style="font-size: 22px; font-weight: 800; color: #111827; margin: 0;">Analysis Results</h2>
@@ -234,93 +308,61 @@ export const CareEligibilityEngine = () => {
 
 
 
-                    <!-- Row 3: Eligibility Result and Cost Summary -->
+                    <!-- Row 3: Eligibility Result and Coverage Summary -->
                     <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 24px; margin-bottom: 24px;">
                         <!-- Eligibility Result Card -->
-                        <div style="${cardStyle} border: 2px solid #22C55E; background: #FAFAFA; justify-content: space-between;">
+                        <div style="${cardStyle} border: 2px solid ${s.eligibilityStatus === 'Eligible' ? '#22C55E' : s.eligibilityStatus === 'Not Eligible' ? '#EF4444' : '#F59E0B'}; background: #FAFAFA; justify-content: space-between;">
                             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
                                 <div>
-                                    <div style="display: flex; align-items: center; gap: 8px; color: #16A34A; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">
+                                    <div style="display: flex; align-items: center; gap: 8px; color: ${s.eligibilityStatus === 'Eligible' ? '#16A34A' : s.eligibilityStatus === 'Not Eligible' ? '#DC2626' : '#D97706'}; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polyline points="9 12 11 14 15 10"></polyline></svg>
                                         ELIGIBILITY RESULT
                                     </div>
-                                    <div style="font-size: 15px; font-weight: 600; color: #4B5563; margin-bottom: 8px;">Approval Probability</div>
-                                    <h2 style="font-size: 42px; font-weight: 800; color: #22C55E; margin: 0 0 16px 0; line-height: 1;">High</h2>
+                                    <div style="font-size: 15px; font-weight: 600; color: #4B5563; margin-bottom: 8px;">Status</div>
+                                    <h2 style="font-size: 32px; font-weight: 800; color: ${s.eligibilityStatus === 'Eligible' ? '#22C55E' : s.eligibilityStatus === 'Not Eligible' ? '#EF4444' : '#F59E0B'}; margin: 0 0 16px 0; line-height: 1;">${s.eligibilityStatus}</h2>
                                     <div style="display: flex; align-items: center; gap: 8px; color: #4B5563; font-size: 14px; font-weight: 500;">
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="#22C55E" stroke="#22C55E" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                                        Great! Your claim is highly likely to be approved.
-                                    </div>
-                                </div>
-                                <!-- Circular Progress -->
-                                <div style="position: relative; width: 120px; height: 120px; display: flex; align-items: center; justify-content: center;">
-                                    <svg width="120" height="120" viewBox="0 0 120 120" style="transform: rotate(-90deg);">
-                                        <circle cx="60" cy="60" r="46" fill="none" stroke="#DCFCE7" stroke-width="8"></circle>
-                                        <circle cx="60" cy="60" r="46" fill="none" stroke="#22C55E" stroke-width="8" stroke-dasharray="289" stroke-dashoffset="${289 - (289 * s.matchScore / 100)}" stroke-linecap="round"></circle>
-                                    </svg>
-                                    <div style="position: absolute; display: flex; flex-direction: column; align-items: center;">
-                                        <span style="font-size: 26px; font-weight: 800; color: #16A34A; letter-spacing: -1px;">${s.matchScore}%</span>
-                                        <span style="font-size: 12px; font-weight: 500; color: #6B7280;">Score</span>
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                                        ${s.confidence}
                                     </div>
                                 </div>
                             </div>
-                            <div style="display: flex; gap: 16px; background: #F0FDF4; padding: 16px; border-radius: 8px; border: 1px solid #DCFCE7;">
-                                <div style="flex: 1; display: flex; align-items: center; gap: 12px;">
-                                    <div style="background: #DCFCE7; padding: 8px; border-radius: 8px;">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                            <div style="display: flex; gap: 16px; background: #F8FAFC; padding: 16px; border-radius: 8px; border: 1px solid #E2E8F0;">
+                                <div style="flex: 1; display: flex; align-items: flex-start; gap: 12px;">
+                                    <div style="background: #E2E8F0; padding: 8px; border-radius: 8px;">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
                                     </div>
                                     <div style="display: flex; flex-direction: column;">
-                                        <span style="font-size: 11px; font-weight: 600; color: #4B5563;">Risk Level</span>
-                                        <span style="font-size: 14px; font-weight: 700; color: #16A34A;">Low</span>
-                                    </div>
-                                </div>
-                                <div style="flex: 1; display: flex; align-items: center; gap: 12px; border-left: 1px solid #DCFCE7; padding-left: 16px;">
-                                    <div style="background: #FEF3C7; padding: 8px; border-radius: 8px;">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                                    </div>
-                                    <div style="display: flex; flex-direction: column;">
-                                        <span style="font-size: 11px; font-weight: 600; color: #4B5563;">Rejection Risk</span>
-                                        <span style="font-size: 14px; font-weight: 700; color: #D97706;">15%</span>
-                                    </div>
-                                </div>
-                                <div style="flex: 1; display: flex; align-items: center; gap: 12px; border-left: 1px solid #DCFCE7; padding-left: 16px;">
-                                    <div style="background: #DCFCE7; padding: 8px; border-radius: 8px;">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                                    </div>
-                                    <div style="display: flex; flex-direction: column;">
-                                        <span style="font-size: 11px; font-weight: 600; color: #4B5563;">Waiting Period</span>
-                                        <span style="font-size: 14px; font-weight: 700; color: #16A34A;">Completed</span>
+                                        <span style="font-size: 11px; font-weight: 600; color: #4B5563; margin-bottom: 4px;">EVIDENCE</span>
+                                        <span style="font-size: 13px; font-style: italic; color: #334155;">"${s.evidence}"</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         
-                        <!-- Cost Summary Card -->
+                        <!-- Coverage Summary Card -->
                         <div style="${cardStyle}">
                             <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
                                 <div style="background: #F5F3FF; padding: 8px; border-radius: 8px;">
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6D28D9" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>
                                 </div>
-                                <h3 style="font-size: 16px; font-weight: 700; color: #111827; margin: 0;">Cost Summary</h3>
+                                <h3 style="font-size: 16px; font-weight: 700; color: #111827; margin: 0;">Coverage Summary</h3>
                             </div>
-                            <div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px;">
+                            <div style="display: flex; flex-direction: column; gap: 16px;">
                                 <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #F3F4F6; padding-bottom: 16px;">
-                                    <span style="font-size: 14px; font-weight: 500; color: #4B5563;">Estimated Total Cost</span>
-                                    <span style="font-size: 16px; font-weight: 700; color: #111827;">₹ 1,20,000</span>
+                                    <span style="font-size: 14px; font-weight: 500; color: #4B5563;">Sum Insured</span>
+                                    <span style="font-size: 14px; font-weight: 700; color: #111827; text-align: right; max-width: 60%;">${s.sumInsured}</span>
                                 </div>
                                 <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #F3F4F6; padding-bottom: 16px;">
-                                    <span style="font-size: 14px; font-weight: 500; color: #4B5563;">Insurance Coverage</span>
-                                    <span style="font-size: 16px; font-weight: 700; color: #16A34A;">₹ 1,02,000</span>
+                                    <span style="font-size: 14px; font-weight: 500; color: #4B5563;">Coverage Limits</span>
+                                    <span style="font-size: 14px; font-weight: 700; color: #16A34A; text-align: right; max-width: 60%;">${s.coverageLimits}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #F3F4F6; padding-bottom: 16px;">
+                                    <span style="font-size: 14px; font-weight: 500; color: #4B5563;">Sub Limits</span>
+                                    <span style="font-size: 14px; font-weight: 700; color: #D97706; text-align: right; max-width: 60%;">${s.subLimits}</span>
                                 </div>
                                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <span style="font-size: 14px; font-weight: 500; color: #4B5563;">You Pay (Approx.)</span>
-                                    <span style="font-size: 16px; font-weight: 700; color: #DC2626;">₹ 18,000</span>
-                                </div>
-                            </div>
-                            <div style="background: #F5F3FF; padding: 16px; border-radius: 8px; display: flex; align-items: center; gap: 12px; margin-top: auto;">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6D28D9" stroke-width="2"><path d="M19 8c0-3.3-2.7-6-6-6-3 0-5.4 2.2-5.9 5.1C3.5 7.6 2 10.3 2 13c0 3.3 2.7 6 6 6h11c2.2 0 4-1.8 4-4s-1.8-4-4-4v-3z"></path><circle cx="15" cy="11" r="1"></circle></svg>
-                                <div style="display: flex; flex-direction: column;">
-                                    <span style="font-size: 12px; font-weight: 600; color: #4B5563;">You save approximately</span>
-                                    <span style="font-size: 15px; font-weight: 700; color: #6D28D9;">₹ 1,02,000 (85%)</span>
+                                    <span style="font-size: 14px; font-weight: 500; color: #4B5563;">Co-pay</span>
+                                    <span style="font-size: 14px; font-weight: 700; color: #DC2626; text-align: right; max-width: 60%;">${s.coPay}</span>
                                 </div>
                             </div>
                         </div>
@@ -335,17 +377,11 @@ export const CareEligibilityEngine = () => {
                                     <div style="background: #FFFBEB; padding: 8px; border-radius: 8px;">
                                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
                                     </div>
-                                    <h3 style="font-size: 16px; font-weight: 700; color: #111827; margin: 0;">Coverage Gaps</h3>
+                                    <h3 style="font-size: 16px; font-weight: 700; color: #111827; margin: 0;">Coverage Gaps & Exclusions</h3>
                                 </div>
                                 <ul style="margin: 0 0 24px 0; padding-left: 20px; font-size: 14px; color: #4B5563; display: flex; flex-direction: column; gap: 16px;">
-                                    <li style="color: #4B5563; padding-left: 8px;">Wear and tear parts not covered.</li>
-                                    <li style="color: #4B5563; padding-left: 8px;">Electrical breakdown not covered.</li>
-                                    <li style="color: #4B5563; padding-left: 8px;">Depreciation on parts applicable.</li>
+                                    ${s.coverageGaps.length > 0 ? s.coverageGaps.map(g => `<li style="color: #4B5563; padding-left: 8px;">${g}</li>`).join('') : '<li style="color: #4B5563; padding-left: 8px;">No specific exclusions found in retrieved documents.</li>'}
                                 </ul>
-                            </div>
-                            <div style="background: #FFFBEB; padding: 12px 16px; border-radius: 8px; border: 1px solid #FEF3C7; display: flex; align-items: center; gap: 12px;">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-                                <span style="font-size: 13px; font-weight: 600; color: #92400E;">Consider Engine Protect Add-on for better coverage.</span>
                             </div>
                         </div>
                         
@@ -356,40 +392,32 @@ export const CareEligibilityEngine = () => {
                                     <div style="background: #EFF6FF; padding: 8px; border-radius: 8px;">
                                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
                                     </div>
-                                    <h3 style="font-size: 16px; font-weight: 700; color: #111827; margin: 0;">Action Plan</h3>
+                                    <h3 style="font-size: 16px; font-weight: 700; color: #111827; margin: 0;">Required Documents & Actions</h3>
                                 </div>
                                 <ul style="margin: 0 0 24px 0; padding: 0; list-style: none; font-size: 14px; color: #4B5563; display: flex; flex-direction: column; gap: 12px;">
-                                    <li style="display: flex; align-items: flex-start; gap: 10px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="#3B82F6" stroke="#3B82F6" stroke-width="2" style="margin-top: 2px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01" stroke="#FFFFFF"></polyline></svg> <span>Capture clear photos of the damage.</span></li>
-                                    <li style="display: flex; align-items: flex-start; gap: 10px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="#3B82F6" stroke="#3B82F6" stroke-width="2" style="margin-top: 2px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01" stroke="#FFFFFF"></polyline></svg> <span>File the claim as soon as possible.</span></li>
-                                    <li style="display: flex; align-items: flex-start; gap: 10px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="#3B82F6" stroke="#3B82F6" stroke-width="2" style="margin-top: 2px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01" stroke="#FFFFFF"></polyline></svg> <span>Use Tata AIG network garage for cashless benefits.</span></li>
-                                    <li style="display: flex; align-items: flex-start; gap: 10px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="#3B82F6" stroke="#3B82F6" stroke-width="2" style="margin-top: 2px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01" stroke="#FFFFFF"></polyline></svg> <span>Keep all documents and repair bills safe.</span></li>
+                                    ${s.actionPlan.length > 0 ? s.actionPlan.map(a => `<li style="display: flex; align-items: flex-start; gap: 10px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="#3B82F6" stroke="#3B82F6" stroke-width="2" style="margin-top: 2px; flex-shrink: 0;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01" stroke="#FFFFFF"></polyline></svg> <span>${a}</span></li>`).join('') : '<li style="display: flex; align-items: flex-start; gap: 10px;"><span>No explicit actions found in retrieved documents.</span></li>'}
                                 </ul>
-                            </div>
-                            <div style="background: #EFF6FF; padding: 12px 16px; border-radius: 8px; border: 1px solid #DBEAFE; display: flex; align-items: center; gap: 12px;">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-                                <span style="font-size: 13px; font-weight: 600; color: #1D4ED8;">Follow these steps to increase approval chances.</span>
                             </div>
                         </div>
 
-                        <!-- Policy Rule Applied Card -->
+                        <!-- Policy Rules Applied Card -->
                         <div style="${cardStyle} justify-content: space-between;">
                             <div>
                                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
                                     <div style="background: #ECFDF5; padding: 8px; border-radius: 8px;">
                                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
                                     </div>
-                                    <h3 style="font-size: 16px; font-weight: 700; color: #111827; margin: 0;">Policy Rule Applied</h3>
+                                    <h3 style="font-size: 16px; font-weight: 700; color: #111827; margin: 0;">Policy Rules Applied</h3>
                                 </div>
-                                <ul style="margin: 0 0 24px 0; padding: 0; list-style: none; font-size: 14px; color: #4B5563; display: flex; flex-direction: column; gap: 12px;">
-                                    <li style="display: flex; align-items: flex-start; gap: 10px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="#10B981" stroke="#10B981" stroke-width="2" style="margin-top: 2px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01" stroke="#FFFFFF"></polyline></svg> <span>Fracture treatment covered</span></li>
-                                    <li style="display: flex; align-items: flex-start; gap: 10px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="#10B981" stroke="#10B981" stroke-width="2" style="margin-top: 2px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01" stroke="#FFFFFF"></polyline></svg> <span>Waiting period completed</span></li>
-                                    <li style="display: flex; align-items: flex-start; gap: 10px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="#10B981" stroke="#10B981" stroke-width="2" style="margin-top: 2px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01" stroke="#FFFFFF"></polyline></svg> <span>Emergency admission eligible</span></li>
-                                    <li style="display: flex; align-items: flex-start; gap: 10px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" style="margin-top: 2px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> <span style="color: #92400E; font-weight: 500;">Co-payment applicable</span></li>
-                                </ul>
-                            </div>
-                            <div style="background: #FEF3C7; padding: 12px 16px; border-radius: 8px; border: 1px solid #FDE68A; display: flex; align-items: center; gap: 12px;">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-                                <span style="font-size: 13px; font-weight: 600; color: #92400E;">Review co-payment terms before proceeding.</span>
+                                <div style="display: flex; flex-direction: column; gap: 16px;">
+                                    ${s.policyRulesApplied.length > 0 ? s.policyRulesApplied.map(r => `
+                                    <div style="background: #F8FAFC; border: 1px solid #E2E8F0; padding: 12px; border-radius: 8px;">
+                                        <div style="font-size: 13px; font-weight: 700; color: #1E293B; margin-bottom: 4px;">${r.rule}</div>
+                                        <div style="font-size: 12px; font-style: italic; color: #475569; margin-bottom: 6px;">"${r.clause}"</div>
+                                        <div style="font-size: 11px; font-weight: 600; color: #64748B;">Source: ${r.source} (Page ${r.page})</div>
+                                    </div>
+                                    `).join('') : '<div style="font-size: 13px; color: #475569;">No specific rules applied.</div>'}
+                                </div>
                             </div>
                         </div>
                     </div>

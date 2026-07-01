@@ -1,20 +1,78 @@
 export const InsuranceJourney = () => {
-    // Initial empty/welcome state for the narrative engine
-    const conversation = [
-        {
-            role: "system",
-            timestamp: "Just now",
-            content: "Welcome to your Insurance Journey narrative. I am designed to continuously monitor your policy events and translate them into a clear, insightful story. Your timeline is currently waiting for new events to be processed.",
-            insight: false
-        },
-        {
-            role: "system",
-            timestamp: "Just now",
-            content: "How would you like to begin? You can connect your policy data source, or ask me a question about your coverage to initiate the narrative.",
-            insight: false,
-            actions: ["Connect Data Source", "Ask a Question", "View Sample Analysis"]
-        }
-    ];
+    if (!window.InsuranceJourneyActions) {
+        window.InsuranceJourneyActions = {
+            sendMessage: () => {
+                const input = document.getElementById('journey-input-field');
+                const text = input.value.trim();
+                if (!text) return;
+                
+                const history = JSON.parse(localStorage.getItem('sfan_journey_chat') || '[]');
+                history.push({ role: "user", timestamp: "Just now", content: text });
+                localStorage.setItem('sfan_journey_chat', JSON.stringify(history));
+                
+                // Clear input and Re-render immediately
+                document.getElementById('dashboard-root').innerHTML = InsuranceJourney();
+                
+                // Simulate AI reply
+                setTimeout(() => {
+                    const currentHistory = JSON.parse(localStorage.getItem('sfan_journey_chat') || '[]');
+                    currentHistory.push({
+                        role: "system",
+                        timestamp: "Just now",
+                        content: "I have recorded this event in your journey timeline. Based on this update, your narrative has progressed.",
+                        insight: true
+                    });
+                    localStorage.setItem('sfan_journey_chat', JSON.stringify(currentHistory));
+                    document.getElementById('dashboard-root').innerHTML = InsuranceJourney();
+                    
+                    // Auto-scroll to bottom
+                    const msgContainer = document.querySelector('.journey-messages');
+                    if(msgContainer) msgContainer.scrollTop = msgContainer.scrollHeight;
+                }, 1000);
+            },
+            triggerAction: (actionText) => {
+                const history = JSON.parse(localStorage.getItem('sfan_journey_chat') || '[]');
+                history.push({ role: "user", timestamp: "Just now", content: actionText });
+                localStorage.setItem('sfan_journey_chat', JSON.stringify(history));
+                document.getElementById('dashboard-root').innerHTML = InsuranceJourney();
+                
+                setTimeout(() => {
+                    const currentHistory = JSON.parse(localStorage.getItem('sfan_journey_chat') || '[]');
+                    let reply = "Processing your request...";
+                    if (actionText === "Connect Data Source") reply = "Initiating data source connection protocol. Please follow the upcoming prompts to link your accounts.";
+                    if (actionText === "Ask a Question") reply = "What specific question do you have about your coverage limits or policies?";
+                    if (actionText === "View Sample Analysis") reply = "Here is a sample analysis: Policyholder usually renews 2 weeks prior to expiry. Gap identified in critical illness cover.";
+                    
+                    currentHistory.push({ role: "system", timestamp: "Just now", content: reply, insight: false });
+                    localStorage.setItem('sfan_journey_chat', JSON.stringify(currentHistory));
+                    document.getElementById('dashboard-root').innerHTML = InsuranceJourney();
+                    
+                    const msgContainer = document.querySelector('.journey-messages');
+                    if(msgContainer) msgContainer.scrollTop = msgContainer.scrollHeight;
+                }, 1000);
+            }
+        };
+    }
+
+    let conversation = JSON.parse(localStorage.getItem('sfan_journey_chat'));
+    if (!conversation || conversation.length === 0) {
+        conversation = [
+            {
+                role: "system",
+                timestamp: "Just now",
+                content: "Welcome to your Insurance Journey narrative. I am designed to continuously monitor your policy events and translate them into a clear, insightful story. Your timeline is currently waiting for new events to be processed.",
+                insight: false
+            },
+            {
+                role: "system",
+                timestamp: "Just now",
+                content: "How would you like to begin? You can connect your policy data source, or ask me a question about your coverage to initiate the narrative.",
+                insight: false,
+                actions: ["Connect Data Source", "Ask a Question", "View Sample Analysis"]
+            }
+        ];
+        localStorage.setItem('sfan_journey_chat', JSON.stringify(conversation));
+    }
 
     const renderMessage = (msg, index) => {
         const isSystem = msg.role === "system";
@@ -29,7 +87,7 @@ export const InsuranceJourney = () => {
             actionsHtml = `
                 <div style="display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap;">
                     ${msg.actions.map(action => `
-                        <button style="background: transparent; border: 1px solid rgba(0,0,0,0.15); color: #374151; padding: 10px 20px; border-radius: 100px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.3s ease;" onmouseover="this.style.background='#111827'; this.style.color='#FFFFFF'; this.style.borderColor='#111827';" onmouseout="this.style.background='transparent'; this.style.color='#374151'; this.style.borderColor='rgba(0,0,0,0.15)';">${action}</button>
+                        <button onclick="window.InsuranceJourneyActions.triggerAction('${action}')" style="background: transparent; border: 1px solid rgba(0,0,0,0.15); color: #374151; padding: 10px 20px; border-radius: 100px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.3s ease;" onmouseover="this.style.background='#111827'; this.style.color='#FFFFFF'; this.style.borderColor='#111827';" onmouseout="this.style.background='transparent'; this.style.color='#374151'; this.style.borderColor='rgba(0,0,0,0.15)';">${action}</button>
                     `).join('')}
                 </div>
             `;
@@ -235,8 +293,8 @@ export const InsuranceJourney = () => {
 
                 <div class="journey-input-area">
                     <div class="journey-input-wrapper">
-                        <input type="text" class="journey-input" placeholder="Type a message or event...">
-                        <button class="journey-send-btn">
+                        <input id="journey-input-field" type="text" class="journey-input" placeholder="Type a message or event..." onkeypress="if(event.key === 'Enter') window.InsuranceJourneyActions.sendMessage()">
+                        <button class="journey-send-btn" onclick="window.InsuranceJourneyActions.sendMessage()">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                         </button>
                     </div>

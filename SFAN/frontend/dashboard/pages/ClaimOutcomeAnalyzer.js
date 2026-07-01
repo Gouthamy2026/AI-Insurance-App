@@ -3,7 +3,11 @@ export const ClaimOutcomeAnalyzer = () => {
     const existingState = window.ClaimOutcomeActions?.state || {
         isAnalyzing: false,
         isAnalyzed: false,
-        charCount: 0,
+        charCount: 91,
+        selectedClaimType: 'Vehicle Claim',
+        selectedNamespace: 'regulatory_governance',
+        selectedBank: 'SBI Bank',
+        scenarioText: 'I met with an accident due to heavy rain. My car front bumper and headlight are damaged.',
         provider: '',
         bank: '',
         matchScore: 0,
@@ -25,9 +29,39 @@ export const ClaimOutcomeAnalyzer = () => {
 
     window.ClaimOutcomeActions = {
         state: existingState,
+        reset: () => {
+            window.ClaimOutcomeActions.state = {
+                isAnalyzing: false,
+                isAnalyzed: false,
+                charCount: 0,
+                selectedClaimType: 'Vehicle Claim',
+                selectedNamespace: 'regulatory_governance',
+                selectedBank: 'SBI Bank',
+                scenarioText: '',
+                provider: '',
+                bank: '',
+                matchScore: 0,
+                matchStatus: '',
+                aiSummary: '',
+                policyName: '',
+                policyType: '',
+                coverageType: '',
+                policyNumber: '',
+                claimCategory: '',
+                whyReasons: [],
+                evidence: '',
+                risks: [],
+                riskWarning: '',
+                actionPlan: [],
+                comparisonOptions: [],
+                takeaway: ''
+            };
+            document.getElementById('dashboard-root').innerHTML = ClaimOutcomeAnalyzer();
+        },
         updateCharCount: () => {
             const text = document.getElementById('claim-scenario').value;
             window.ClaimOutcomeActions.state.charCount = text.length;
+            window.ClaimOutcomeActions.state.scenarioText = text;
             document.getElementById('char-count').innerText = `${text.length} / 500`;
         },
         analyze: async () => {
@@ -41,66 +75,85 @@ export const ClaimOutcomeAnalyzer = () => {
             if (!preferredBank) { alert('Please select a bank.'); return; }
             if (!scenario) { alert('Please explain your scenario.'); return; }
 
+            window.ClaimOutcomeActions.state.selectedClaimType = claimType;
+            window.ClaimOutcomeActions.state.selectedNamespace = policyNamespace;
+            window.ClaimOutcomeActions.state.selectedBank = preferredBank;
+            window.ClaimOutcomeActions.state.scenarioText = scenario;
             window.ClaimOutcomeActions.state.isAnalyzing = true;
             document.getElementById('dashboard-root').innerHTML = ClaimOutcomeAnalyzer();
-
-            // Mock API call
-            await new Promise(resolve => setTimeout(resolve, 1500));
-
-            window.ClaimOutcomeActions.state.isAnalyzing = false;
-            window.ClaimOutcomeActions.state.isAnalyzed = true;
-            
-            const s = window.ClaimOutcomeActions.state;
-            s.provider = "Tata AIG General Insurance";
-            s.bank = preferredBank === 'AI_SUGGEST' ? 'SBI Bank' : preferredBank;
-            s.matchScore = 88;
-            s.matchStatus = "Excellent Match";
-            s.aiSummary = "Based on the terms and conditions of the " + (policyNamespace.replace(/_/g, ' ').toUpperCase()) + " policy issued by Tata AIG General Insurance and distributed through SBI Bank, your claim scenario is likely to be covered as the damages are due to an accidental event caused by heavy rain.";
-            s.policyName = "Private Car Package Policy";
-            s.policyType = "Comprehensive Car Insurance";
-            s.coverageType = "Comprehensive";
-            s.policyNumber = "(As per selected document)";
-            s.claimCategory = claimType;
-            
-            s.whyReasons = [
-                "Covers own damage due to accidents, including weather conditions like heavy rain.",
-                "Includes coverage for external body damage such as bumper and headlight.",
-                "Cashless repair available at network garages.",
-                "24x7 claim assistance."
-            ];
-            s.evidence = '"This policy covers accidental loss or damage to the insured vehicle arising out of external, violent and visible means..."';
-            
-            s.risks = [
-                "Wear and tear, mechanical/electrical breakdown not covered.",
-                "Damage due to flood (if declared as area flooding) may be treated separately.",
-                "Non-network garage repairs may reduce claim amount."
-            ];
-            s.riskWarning = "Ensure the incident is not due to negligence (drunk driving, rash driving, etc.)";
-            
-            s.actionPlan = [
-                "Capture clear photos of the damage.",
-                "File the claim as soon as possible.",
-                "Use Tata AIG network garage for cashless benefits.",
-                "Provide FIR / RTA report if required.",
-                "Keep all documents and repair bills safe."
-            ];
-            
-            s.comparisonOptions = [
-                { provider: "ICICI Lombard General Insurance", bank: "ICICI Bank", score: 65, level: "Good Match" },
-                { provider: "SBI General Insurance", bank: "SBI Bank", score: 58, level: "Moderate Match" },
-                { provider: "HDFC ERGO General Insurance", bank: "HDFC Bank", score: 45, level: "Low Match" }
-            ];
-            
-            s.takeaway = `Tata AIG General Insurance policy distributed by SBI Bank is the best match for your claim scenario with high coverage alignment and suitable benefits.`;
-
-            document.getElementById('dashboard-root').innerHTML = ClaimOutcomeAnalyzer();
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('http://127.0.0.1:8000/intelligence/claim-outcome', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({
+                        scenario: scenario,
+                        namespaces: [policyNamespace],
+                        bank_name: preferredBank
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok || data.error || data.detail) {
+                    alert('Analysis failed: ' + (data.error || data.detail || 'Server error'));
+                    window.ClaimOutcomeActions.state.isAnalyzing = false;
+                    document.getElementById('dashboard-root').innerHTML = ClaimOutcomeAnalyzer();
+                    return;
+                }
+                
+                window.ClaimOutcomeActions.state.isAnalyzing = false;
+                window.ClaimOutcomeActions.state.isAnalyzed = true;
+                
+                const s = window.ClaimOutcomeActions.state;
+                s.provider = policyNamespace.replace(/_/g, ' ').toUpperCase();
+                s.bank = preferredBank === 'AI_SUGGEST' ? 'Recommended Bank' : preferredBank;
+                s.insurerEvidence = data.insurer_evidence || "No evidence found";
+                s.matchScore = data.confidence_score || 0;
+                s.matchStatus = data.predicted_outcome || "Unknown";
+                s.aiSummary = data.claim_analysis_summary || data.predicted_outcome_reason || "";
+                s.policyName = policyNamespace.replace(/_/g, ' ');
+                s.policyType = claimType;
+                s.coverageType = "Evaluated";
+                s.policyNumber = "N/A";
+                s.claimCategory = claimType;
+                
+                s.whyReasons = data.confidence_factors || [];
+                if (data.policy_clause_used) {
+                    s.evidence = `"${data.policy_clause_used.clause_text}" - Source: ${data.policy_clause_used.source}`;
+                } else {
+                    s.evidence = "Specific clause evidence not cited by AI.";
+                }
+                
+                let combinedRisks = [];
+                if (data.missing_requirements) combinedRisks.push(...data.missing_requirements);
+                if (data.hidden_clause) combinedRisks.push(...data.hidden_clause);
+                s.risks = combinedRisks;
+                
+                s.riskWarning = data.risk_level ? `Risk Level: ${data.risk_level}` : "Proceed with caution";
+                s.actionPlan = data.recommended_actions || [];
+                
+                s.comparisonOptions = []; // Not provided by this endpoint currently
+                s.takeaway = data.predicted_outcome_reason || "Please follow the action plan carefully.";
+                
+                document.getElementById('dashboard-root').innerHTML = ClaimOutcomeAnalyzer();
+                
+            } catch (err) {
+                console.error("API Error:", err);
+                alert('Network error connecting to the intelligence engine.');
+                window.ClaimOutcomeActions.state.isAnalyzing = false;
+                document.getElementById('dashboard-root').innerHTML = ClaimOutcomeAnalyzer();
+            }
         }
     };
 
     const s = window.ClaimOutcomeActions.state;
     const namespaces = [
         "regulatory_governance",
-        "Comprehensive Car Insurance",
+        "vehicle_policy",
         "health_policy",
         "home_folder",
         "banking_governance",
@@ -153,10 +206,10 @@ export const ClaimOutcomeAnalyzer = () => {
                             1. Select Claim Type
                         </div>
                         <select id="claim-type" style="width: 100%; padding: 12px; border: 1px solid #E5E7EB; border-radius: 8px; outline: none; background: #FFFFFF; font-size: 14px; color: #374151; cursor: pointer; -webkit-appearance: none; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,<svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"%236B7280\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"6 9 12 15 18 9\"></polyline></svg>'); background-repeat: no-repeat; background-position: right 12px center;">
-                            <option value="Vehicle Claim">Vehicle Claim</option>
-                            <option value="Health Claim">Health Claim</option>
-                            <option value="Travel Claim">Travel Claim</option>
-                            <option value="Home Claim">Home Claim</option>
+                            <option value="Vehicle Claim" ${s.selectedClaimType === 'Vehicle Claim' ? 'selected' : ''}>Vehicle Claim</option>
+                            <option value="Health Claim" ${s.selectedClaimType === 'Health Claim' ? 'selected' : ''}>Health Claim</option>
+                            <option value="Travel Claim" ${s.selectedClaimType === 'Travel Claim' ? 'selected' : ''}>Travel Claim</option>
+                            <option value="Home Claim" ${s.selectedClaimType === 'Home Claim' ? 'selected' : ''}>Home Claim</option>
                         </select>
                     </div>
 
@@ -167,8 +220,7 @@ export const ClaimOutcomeAnalyzer = () => {
                             2. Select Policy
                         </div>
                         <select id="pinecone-namespace" style="width: 100%; padding: 12px; border: 1px solid #E5E7EB; border-radius: 8px; outline: none; background: #FFFFFF; font-size: 14px; color: #374151; cursor: pointer; -webkit-appearance: none; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,<svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"%236B7280\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"6 9 12 15 18 9\"></polyline></svg>'); background-repeat: no-repeat; background-position: right 12px center;">
-                            <option value="Comprehensive Car Insurance" selected>Comprehensive Car Insurance</option>
-                            ${namespaces.map(ns => ns !== 'Comprehensive Car Insurance' ? `<option value="${ns}">${ns.replace(/_/g, ' ')}</option>` : '').join('')}
+                            ${namespaces.map(ns => `<option value="${ns}" ${s.selectedNamespace === ns ? 'selected' : ''}>${ns.replace(/_/g, ' ')}</option>`).join('')}
                         </select>
                     </div>
 
@@ -179,8 +231,8 @@ export const ClaimOutcomeAnalyzer = () => {
                             3. Select Bank
                         </div>
                         <select id="preferred-bank" style="width: 100%; padding: 12px; border: 1px solid #E5E7EB; border-radius: 8px; outline: none; background: #FFFFFF; font-size: 14px; color: #374151; cursor: pointer; -webkit-appearance: none; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,<svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"%236B7280\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"6 9 12 15 18 9\"></polyline></svg>'); background-repeat: no-repeat; background-position: right 12px center;">
-                            <option value="SBI Bank" selected>SBI Bank</option>
-                            ${bankOptions.map(b => b !== 'SBI Bank' ? `<option value="${b}">${b === 'AI_SUGGEST' ? '✨ AI: Suggest Best Bank' : b}</option>` : '').join('')}
+                            <option value="SBI Bank" ${s.selectedBank === 'SBI Bank' ? 'selected' : ''}>SBI Bank</option>
+                            ${bankOptions.map(b => b !== 'SBI Bank' ? `<option value="${b}" ${s.selectedBank === b ? 'selected' : ''}>${b === 'AI_SUGGEST' ? '✨ AI: Suggest Best Bank' : b}</option>` : '').join('')}
                         </select>
                     </div>
 
@@ -190,11 +242,11 @@ export const ClaimOutcomeAnalyzer = () => {
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
                             4. Explain Scenario
                         </div>
-                        <textarea id="claim-scenario" maxlength="500" onkeyup="window.ClaimOutcomeActions.updateCharCount()" rows="3" placeholder="Describe what happened, when it happened, and the damages or expenses involved." style="width: 100%; padding: 12px; border: 1px solid #E5E7EB; border-radius: 8px; outline: none; background: #FFFFFF; font-size: 13px; color: #374151; resize: none; font-family: inherit; box-sizing: border-box;">I met with an accident due to heavy rain. My car front bumper and headlight are damaged.</textarea>
+                        <textarea id="claim-scenario" maxlength="500" onkeyup="window.ClaimOutcomeActions.updateCharCount()" rows="3" placeholder="Describe what happened, when it happened, and the damages or expenses involved." style="width: 100%; padding: 12px; border: 1px solid #E5E7EB; border-radius: 8px; outline: none; background: #FFFFFF; font-size: 13px; color: #374151; resize: none; font-family: inherit; box-sizing: border-box;">${s.scenarioText}</textarea>
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
                             <span style="font-size: 11px; color: #9CA3AF;">(Max 500 characters)</span>
                             <div style="display: flex; align-items: center; gap: 12px;">
-                                <span id="char-count" style="font-size: 11px; color: #6B7280;">91 / 500</span>
+                                <span id="char-count" style="font-size: 11px; color: #6B7280;">${s.charCount} / 500</span>
                                 <button onclick="window.ClaimOutcomeActions.analyze()" ${s.isAnalyzing ? 'disabled' : ''} style="display: none;"></button>
                             </div>
                         </div>
@@ -215,9 +267,15 @@ export const ClaimOutcomeAnalyzer = () => {
                 ${s.isAnalyzed ? `
                 <div style="padding: 24px 0; animation: fadeIn 0.5s ease;">
 
-                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 28px;">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7E22CE" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-                        <h2 style="font-size: 22px; font-weight: 800; color: #111827; margin: 0;">Analysis Results</h2>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7E22CE" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                            <h2 style="font-size: 22px; font-weight: 800; color: #111827; margin: 0;">Analysis Results</h2>
+                        </div>
+                        <button onclick="window.ClaimOutcomeActions.reset()" style="background: #F3F4F6; color: #374151; border: 1px solid #D1D5DB; padding: 10px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s ease;" onmouseover="this.style.background='#E5E7EB'" onmouseout="this.style.background='#F3F4F6'">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline></svg>
+                            New Assessment
+                        </button>
                     </div>
 
                     <!-- Top row: Recommendation and Details -->
@@ -227,14 +285,11 @@ export const ClaimOutcomeAnalyzer = () => {
                         <div style="${cardStyle} border-left: 4px solid #059669; padding: 28px; justify-content: space-between;">
                             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
                                 <div style="max-width: 60%;">
-                                    <div style="display: flex; align-items: center; gap: 8px; color: #059669; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                                        TOP RECOMMENDATION
+                                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                        <span style="background: #F3F4F6; color: #4B5563; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600;">Top Recommendation</span>
                                     </div>
-                                    <h2 style="font-size: 32px; font-weight: 800; color: #059669; margin: 0 0 16px 0; letter-spacing: -0.5px;">${s.provider}</h2>
-                                    <div style="font-size: 14px; color: #4B5563; line-height: 1.6;">
-                                        This policy from ${s.provider} (distributed through ${s.bank}) is the most suitable for your scenario.
-                                    </div>
+                                    <h2 style="font-size: 20px; font-weight: 700; color: #111827; margin: 0;">${s.provider}</h2>
+                                    <p style="color: #6B7280; font-size: 14px; margin: 4px 0 0 0;">This policy is the most suitable for your scenario.</p>
                                 </div>
                                 <div style="border: 1px solid #E5E7EB; border-radius: 12px; padding: 20px 32px; text-align: center; background: #FFFFFF;">
                                     <div style="font-size: 10px; font-weight: 800; color: #4B5563; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Overall Alignment</div>
@@ -335,8 +390,9 @@ export const ClaimOutcomeAnalyzer = () => {
                     </div>
 
                     <!-- Bottom row: Comparison and Takeaway -->
-                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
+                    <div style="display: grid; grid-template-columns: ${s.comparisonOptions && s.comparisonOptions.length > 0 ? '2fr 1fr' : '1fr'}; gap: 24px;">
 
+                        ${s.comparisonOptions && s.comparisonOptions.length > 0 ? `
                         <!-- CARD 6: OTHER POLICY OPTIONS -->
                         <div style="${cardStyle}">
                             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 20px;">
@@ -372,6 +428,7 @@ export const ClaimOutcomeAnalyzer = () => {
                                 </tbody>
                             </table>
                         </div>
+                        ` : ''}
 
                         <!-- CARD 7: KEY TAKEAWAY -->
                         <div style="${cardStyle} background: #FFFFFF; border: 1px solid #E9D5FF;">

@@ -83,16 +83,21 @@ export const InsuranceLocker = () => {
 
     return `
         <div style="animation: fadeIn 0.3s ease; padding: 0 20px; font-family: 'Inter', system-ui, sans-serif; max-width: 1200px; margin: 0 auto;">
-            <!-- Header with Illustration -->
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; background: #F8FAFC; padding: 32px 40px; border-radius: 20px; border: 1px solid #E2E8F0; overflow: hidden; position: relative;">
-                <div style="flex: 1; position: relative; z-index: 2;">
-                    <h1 style="font-size: 32px; font-weight: 800; color: #0F172A; margin: 0 0 10px 0; display: flex; align-items: center; gap: 14px; letter-spacing: -0.5px;">
+            <!-- Page Header -->
+            <div style="border-bottom: 1px solid #E5E7EB; padding-bottom: 24px; margin-bottom: 32px; display: flex; justify-content: space-between; align-items: flex-end;">
+                <div>
+                    <h1 style="font-size: 32px; font-weight: 800; color: #111827; margin: 0 0 8px 0; letter-spacing: -0.5px; display: flex; align-items: center; gap: 14px;">
                         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: #3B82F6;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                         Insurance Locker
                     </h1>
-                    <p style="color: #111827; font-size: 18px; font-weight: 500; margin: 0; max-width: 500px; line-height: 1.6;">Your secure, centralized repository. Upload, manage, and analyze all your policy documents in one highly protected vault.</p>
-                    
-                    <div style="display: flex; gap: 16px; align-items: center; margin-top: 28px;">
+                    <p style="color: #6B7280; font-size: 14px; font-weight: 500; margin: 0; max-width: 600px; line-height: 1.6;">Your secure, centralized repository. Upload, manage, and analyze all your policy documents in one highly protected vault.</p>
+                </div>
+            </div>
+
+            <!-- Action Box with Illustration -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; background: #F8FAFC; padding: 32px 40px; border-radius: 20px; border: 1px solid #E2E8F0; overflow: hidden; position: relative;">
+                <div style="flex: 1; position: relative; z-index: 2;">
+                    <div style="display: flex; gap: 16px; align-items: center;">
                         <div style="position: relative;">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2" style="position: absolute; left: 14px; top: 12px;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                             <input type="text" placeholder="Search policies..." onkeyup="window.InsuranceLockerActions.search(this.value)" style="padding: 13px 16px 13px 44px; border: 1px solid #CBD5E1; border-radius: 10px; font-size: 16px; color: #111827; outline: none; transition: all 0.2s; width: 280px; box-shadow: 0 2px 6px rgba(0,0,0,0.02);" onfocus="this.style.borderColor='#3B82F6'; this.style.boxShadow='0 4px 12px rgba(59,130,246,0.1)'" onblur="this.style.borderColor='#CBD5E1'; this.style.boxShadow='0 2px 6px rgba(0,0,0,0.02)'">
@@ -104,7 +109,7 @@ export const InsuranceLocker = () => {
                     </div>
                 </div>
                 
-                <div style="height: 220px; position: absolute; right: 40px; bottom: 0; z-index: 1;">
+                <div style="height: 120px; position: absolute; right: 40px; bottom: 0; z-index: 1;">
                     <img src="assets/locker_illustration.png" alt="Secure Locker Illustration" style="height: 100%; object-fit: contain; mix-blend-mode: multiply; filter: contrast(1.05);">
                 </div>
             </div>

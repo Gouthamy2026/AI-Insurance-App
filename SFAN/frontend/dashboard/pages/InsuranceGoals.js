@@ -59,7 +59,7 @@ export const InsuranceGoals = () => {
 
     const goalsListHTML = goals.length === 0 
         ? `<div style="grid-column: 1 / -1; text-align: center; padding: 60px 40px; color: #111827; background: #F9FAFB; border-radius: 8px; border: 2px dashed #E5E7EB; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px;">
-             <img src="assets/insurance_goal.png" alt="Insurance Goal" style="width: 280px; height: auto; mix-blend-mode: multiply; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.1)); margin-bottom: 24px;">
+             <img src="assets/insurance_goal.png" alt="Insurance Goal" style="width: 380px; height: auto; mix-blend-mode: multiply; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.1)); margin-bottom: 24px;">
              <h3 style="margin: 0 0 12px 0; font-size: 22px; font-weight: 700; color: #111827;">No goals recorded</h3>
              <p style="margin: 0; max-width: 350px; font-size: 16px; line-height: 1.6; color: #111827;">Use the form on the left to add your first insurance goal.</p>
            </div>`
@@ -101,7 +101,7 @@ export const InsuranceGoals = () => {
             
             <div style="display: flex; flex-wrap: wrap; gap: 40px; align-items: flex-start; justify-content: space-between;">
                 <!-- Left Column: Input Form (Floating Card) -->
-                <div style="flex: 1 1 350px; max-width: 400px; position: sticky; top: 20px; z-index: 10;">
+                <div style="flex: 1 1 500px; position: sticky; top: 20px; z-index: 10;">
                     <div style="border: 1px solid #E5E7EB; border-radius: 12px; background: white; padding: 24px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); transform: translateY(-5px); transition: transform 0.3s ease;">
                         <h2 style="font-size: 20px; font-weight: 700; color: #111827; margin: 0 0 24px 0; border-bottom: 1px solid #F3F4F6; padding-bottom: 12px; display: flex; align-items: center; gap: 8px;">
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
@@ -123,7 +123,7 @@ export const InsuranceGoals = () => {
                 </div>
 
                 <!-- Right Column: Saved Goals Grid -->
-                <div id="goals-list-container" style="flex: 2 1 500px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; align-content: start;">
+                <div id="goals-list-container" style="flex: 1 1 500px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; align-content: start;">
                     ${goalsListHTML}
                 </div>
             </div>
