@@ -1,4 +1,4 @@
-﻿document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
         if (localStorage.getItem('rememberedEmail')) {
@@ -41,6 +41,15 @@
                 errorMsg.textContent = error.message;
             }
         });
+
+        const guestBtn = document.getElementById('guestBtn');
+        if (guestBtn) {
+            guestBtn.addEventListener('click', () => {
+                localStorage.setItem('token', 'guest_token');
+                localStorage.setItem('user', JSON.stringify({ email: 'guest@sfan.com', role: 'Guest', fullName: 'Guest User' }));
+                window.location.href = 'welcome.html';
+            });
+        }
         
         return;
     }

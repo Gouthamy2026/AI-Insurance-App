@@ -1,6 +1,9 @@
 from fastapi import HTTPException
-from groq import Groq
+from groq import Groq, RateLimitError, APIError
 from backend.core.config import settings
+import logging
+
+logger = logging.getLogger(__name__)
 
 def get_groq_client():
     if not settings.GROQ_API_KEY:
@@ -10,20 +13,31 @@ def get_groq_client():
 def generate_completion(prompt: str, system_prompt: str = "You are an Insurance Intelligence API.", model: str = "llama-3.1-8b-instant"):
     client = get_groq_client()
     
-    response = client.chat.completions.create(
-        messages=[
-            {
-                "role": "system",
-                "content": system_prompt,
-            },
-            {
-                "role": "user",
-                "content": prompt,
-            }
-        ],
-        model=model,
-    )
-    return response.choices[0].message.content
+    try:
+        logger.info(f"Calling Groq LLM with model: {model}")
+        response = client.chat.completions.create(
+            messages=[
+                {
+                    "role": "system",
+                    "content": system_prompt,
+                },
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+            ],
+            model=model,
+        )
+        return response.choices[0].message.content
+    except RateLimitError as e:
+        logger.error(f"Groq Rate Limit Error: {e}")
+        raise HTTPException(status_code=429, detail="AI Engine rate limit exceeded. Please try again in a few moments.")
+    except APIError as e:
+        logger.error(f"Groq API Error: {e}")
+        raise HTTPException(status_code=502, detail=f"AI Engine returned an error: {str(e)}")
+    except Exception as e:
+        logger.error(f"Groq Unexpected Error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to communicate with AI Engine: {str(e)}")
 
 def analyze_policy(query: str, context: str, model: str = "llama-3.1-8b-instant"):
     if not context:
@@ -69,21 +83,32 @@ DO NOT ASSUME RELATIONSHIPS. Verify from document evidence only.
 def analyze_vision(prompt: str, image_base64: str, system_prompt: str = "You are an AI Vision Assistant.", model: str = "llama-3.2-11b-vision-preview"):
     client = get_groq_client()
     
-    response = client.chat.completions.create(
-        messages=[
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": f"{system_prompt}\n\n{prompt}"},
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": image_base64,
+    try:
+        logger.info(f"Calling Groq Vision LLM with model: {model}")
+        response = client.chat.completions.create(
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": f"{system_prompt}\n\n{prompt}"},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": image_base64,
+                            }
                         }
-                    }
-                ]
-            }
-        ],
-        model=model,
-    )
-    return response.choices[0].message.content
+                    ]
+                }
+            ],
+            model=model,
+        )
+        return response.choices[0].message.content
+    except RateLimitError as e:
+        logger.error(f"Groq Rate Limit Error: {e}")
+        raise HTTPException(status_code=429, detail="AI Vision Engine rate limit exceeded. Please try again in a few moments.")
+    except APIError as e:
+        logger.error(f"Groq API Error: {e}")
+        raise HTTPException(status_code=502, detail=f"AI Vision Engine returned an error: {str(e)}")
+    except Exception as e:
+        logger.error(f"Groq Unexpected Error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to communicate with AI Vision Engine: {str(e)}")

@@ -6,7 +6,7 @@ import { ProfileSettingsHub } from './pages/ProfileSettingsHub.js';
 import { InsuranceGoals } from './pages/InsuranceGoals.js?v=6';
 import { InsuranceLocker } from './pages/InsuranceLocker.js?v=3';
 import { InsuranceJourney } from './pages/InsuranceJourney.js?v=2';
-import { ClaimOutcomeAnalyzer } from './pages/ClaimOutcomeAnalyzer.js?v=21';
+
 import { CareEligibilityEngine } from './pages/CareEligibilityEngine.js?v=1';
 import { AiAssetCoverageAdvisor } from './pages/AiAssetCoverageAdvisor.js';
 import { AiAssistant } from './pages/AiAssistant.js?v=3';
@@ -47,7 +47,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (state.activeModule === 'home') {
             dashboardRoot.innerHTML = '<div style="padding: 40px; color: #6B7280; font-weight: 500;">Loading dashboard data...</div>';
             const stats = await DashboardService.fetchDashboardStats();
-            dashboardRoot.innerHTML = Home(user, stats);
+            // Prevent race condition: ensure user hasn't navigated away during fetch
+            if (getState().activeModule === 'home') {
+                dashboardRoot.innerHTML = Home(user, stats);
+            }
         } else if (state.activeModule === 'profile-hub') {
             dashboardRoot.innerHTML = ProfileSettingsHub(user);
         } else if (state.activeModule === 'insurance-goals') {
@@ -57,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (state.activeModule === 'insurance-journey') {
             dashboardRoot.innerHTML = InsuranceJourney();
         } else if (state.activeModule === 'claim-outcome') {
-            dashboardRoot.innerHTML = ClaimOutcomeAnalyzer();
+
         } else if (state.activeModule === 'care-eligibility-engine') {
             dashboardRoot.innerHTML = CareEligibilityEngine();
         } else if (state.activeModule === 'ai-asset-coverage') {

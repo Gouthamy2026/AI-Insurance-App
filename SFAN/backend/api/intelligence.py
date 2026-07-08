@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from backend.api.deps import get_current_active_user
 from backend.services.pinecone_service import query_vectors, query_vectors_multi_namespace
-from backend.services.embedding_service import get_embedding
+from backend.services.embedding_service import get_embedding, get_embedding_uncached
 from backend.services.groq_service import analyze_policy, analyze_vision
 import json
 import logging
@@ -36,8 +36,26 @@ def extract_json(text: str) -> dict:
         clean = text.replace("```json", "").replace("```", "").strip()
     return json.loads(clean)
 
+def sanitize_response(data):
+    if isinstance(data, dict):
+        return {k: sanitize_response(v) for k, v in data.items() if not is_invalid_value(v)}
+    elif isinstance(data, list):
+        return [sanitize_response(v) for v in data if not is_invalid_value(v)]
+    return data
 
-router = APIRouter(prefix="/intelligence", tags=["intelligence"])
+def is_invalid_value(val):
+    if val is None:
+        return True
+    if isinstance(val, str):
+        v = val.strip().lower()
+        if v in ["unknown", "null", "undefined", "n/a", "placeholder", "dummy"]:
+            return True
+        if "placeholder" in v or "dummy" in v:
+            return True
+    return False
+
+
+router = APIRouter(prefix="/api/intelligence", tags=["intelligence"])
 
 class UserProfile(BaseModel):
     age: int | None = None
@@ -87,129 +105,106 @@ def get_multi_context_from_pinecone(query: str, namespaces: list[str], top_k: in
     return "\n\n---\n\n".join(contexts)
 
 class ClaimScenarioRequest(BaseModel):
-    scenario: str
-    namespaces: list[str]
-    bank_name: str | None = None
+    policy_type: str
+    claim_type: str
+    insurance_provider: str
+    claim_amount: str | None = None
+    claim_scenario: str
 
 @router.post("/claim-outcome")
 def evaluate_claim_outcome(req: ClaimScenarioRequest, current_user = Depends(get_current_active_user)):
     try:
-        # Search 1: Claim Scenario Context
-        query_str_scenario = f"Coverage clauses, Eligibility conditions, Exclusions, Claim procedures for {req.scenario}"
-        context_scenario = get_multi_context_from_pinecone(query_str_scenario, req.namespaces, top_k=5)
+        logger.info("Request received for evaluate_claim_outcome")
+        query_str = f"Coverage conditions, exclusions, claim requirements. Scenario: {req.claim_scenario}. Provider: {req.insurance_provider}. Claim Type: {req.claim_type}. Amount: {req.claim_amount}."
         
-        # Search 2: Insurer Verification Context
-        query_str_insurer = f"Insurance Provider, Underwritten By, Issued By, Coverage Provided By, Risk Underwritten By {req.bank_name if req.bank_name else ''}"
-        context_insurer = get_multi_context_from_pinecone(query_str_insurer, req.namespaces, top_k=5)
+        namespace = req.policy_type if req.policy_type else "regulatory_governance"
         
-        context = f"--- CLAIM SCENARIO CONTEXT ---\n{context_scenario}\n\n--- INSURER VERIFICATION CONTEXT ---\n{context_insurer}"
+        logger.info(f"Querying Pinecone for namespace: {namespace} with top_k=10")
+        context = get_context_from_pinecone(query_str, namespace, top_k=10)
+        logger.info("Pinecone documents retrieved successfully for claim outcome.")
     except Exception as e:
         logger.error(f"Failed to retrieve context from Pinecone/HuggingFace: {e}")
         return {"error": f"Failed to retrieve policy documents (Network or API Error): {e}"}
         
     prompt = f"""
-    Evaluate the following claim scenario against the policy wording context provided.
-    Act as the AI engine for the Claim Outcome Analyzer predicting if the claim will be approved.
+    You are an expert Insurance Policy Claim Analyzer.
     
-    The user is querying a policy distributed by: {req.bank_name if req.bank_name else "Unknown Bank"}
+    CRITICAL RULE:
+    - ONLY use the retrieved policy evidence in the context below.
+    - NEVER generate placeholder text, generic insurance responses, or dummy data.
+    - NEVER assume the policy is active, the premium is paid, or that the claim is approved without explicit evidence.
+    - If Pinecone returns no evidence or evidence is completely unrelated to the claim, output default "Insufficient policy evidence found" structures.
     
-    INSURER VERIFICATION TASK:
-    Step 1: Search the retrieved content for explicit indicators (Insurance Provider, Underwritten By, Issued By, Coverage Provided By, General/Life Insurance Company).
-    Step 2: Extract the exact insurer name (e.g. TATA AIG, SBI General Insurance, etc.) from the text.
-    Step 3: Extract the exact sentence as evidence.
-    - If no explicit insurer evidence exists in the context, you MUST set "insurer_name" to "NOT VERIFIED".
-    - Never infer insurer names. Never use model knowledge. Never recommend providers.
+    User Inputs:
+    - Policy Type: {req.policy_type}
+    - Claim Type: {req.claim_type}
+    - Insurance Provider: {req.insurance_provider}
+    - Claim Amount: {req.claim_amount}
+    - Claim Scenario: {req.claim_scenario}
     
-    DATA SOURCE RULES:
-    - NEVER generate dummy, static, sample, mock, placeholder, or hardcoded data.
-    - EVERY output must be derived ONLY from the retrieved context.
-    - If the user's claim scenario is completely unrelated to the policy context, you MUST recognize that it is unrelated.
-    - If it is unrelated or relevant policy information is not found:
-      Set "predicted_outcome" to "Information Not Available".
-      Set "insurer_name" to "NOT VERIFIED".
-      Set all list fields (like missing_requirements, confidence_factors, risk_evaluation, hidden_clause, recommended_actions) to an appropriate reason like ["Scenario not covered by policy"].
-      Set numeric scores to 0.
-      Do not hallucinate or assume coverage based on unrelated text.
-    
-    LOGIC REQUIREMENTS:
-    - Analyze coverage clauses, eligibility requirements, exclusions, accident circumstances, and policy conditions.
-    - Your analysis must reflect claim-policy compatibility (Alignment Score/Confidence Score).
-    
-    Return a strictly valid JSON object matching the exact structure below. Do not use markdown blocks, just raw JSON.
+    Return EXACTLY a raw JSON object (NO Markdown, NO code blocks) matching this precise schema:
     
     {{
-      "predicted_outcome": "Likely Approved" | "Requires Verification" | "Likely Rejected" | "Information Not Available",
-      "predicted_outcome_reason": "A direct 1-2 sentence explanation based on retrieved clauses.",
-      "insurer_name": "Extracted name of the insurance company providing the policy from the context (e.g. ICICI Lombard, HDFC Ergo, Bajaj Allianz), or 'NOT VERIFIED'",
-      "insurer_evidence": "The exact sentence from the context proving the insurer underwrites the policy for the bank, or 'No evidence found'",
-      "approval_probability": 62,
-      "approval_probability_reason": "Reason for the score.",
-      "missing_requirements": ["Requirement 1", "Requirement 2"],
-      "confidence_score": 85,
-      "confidence_factors": ["Factor 1", "Factor 2"],
-      "risk_level": "Low Risk" | "Medium Risk" | "High Risk",
-      "risk_evaluation": ["Risk 1", "Risk 2"],
-      "policy_clause_used": {{
-        "clause_text": "Exact retrieved text or None",
-        "source": "Exact retrieved section name or None"
+      "card1_eligibility": {{
+        "overall_assessment": "Summary of eligibility based on evidence, or 'No matching policy evidence found.'",
+        "approval_probability": "Score out of 100 as an integer, or 0",
+        "confidence_score": "Score out of 100 as an integer, or 0",
+        "recommendation": "Concise AI recommendation, or 'Insufficient evidence.'"
       }},
-      "hidden_clause": [
-        "Retrieved hidden condition 1"
-      ],
-      "recommended_actions": [
-        "Retrieved action 1"
-      ],
-      "claim_analysis_summary": "Concise summary of relevant policy clauses and risks.",
-      "granular_coverage_breakdown": {{
-        "fully_covered": [],
-        "subject_to_sub_limits": [],
-        "out_of_scope_excluded": []
+      "card2_evidence": {{
+        "coverage_sections": ["Section 1", "Section 2"],
+        "supporting_evidence": "Explanation of how the scenario matches the evidence.",
+        "exact_clauses": ["Clause 4.1.a text", "Clause 4.2 text"]
       }},
-      "strategic_enhancements": [
-        {{
-          "action": "Action",
-          "expected_impact": "Impact"
-        }}
-      ]
+      "card3_risks": {{
+        "exclusions": ["Exclusion 1", "Exclusion 2"],
+        "limitations": ["Limitation 1"],
+        "waiting_periods": ["Waiting period details"],
+        "missing_documents": ["List of missing documents"]
+      }},
+      "card4_actions": {{
+        "required_documents": ["Doc 1", "Doc 2"],
+        "claim_filing_steps": ["Step 1", "Step 2"],
+        "strategic_actions": ["Strategic advice 1"]
+      }}
     }}
     
-    Claim Scenario:
-    {req.scenario}
+    Context:
+    {context}
     """
     
-    response = analyze_policy(prompt, context, model="llama-3.3-70b-versatile")
+    logger.info("Calling Groq LLM for claim outcome analysis...")
+    response = analyze_policy(prompt, context, model="llama-3.1-8b-instant")
+    logger.info("Analysis generated successfully")
     try:
         return extract_json(response)
-    except ValueError as ve:
-        return {
-            "predicted_outcome": "Information Not Available",
-            "predicted_outcome_reason": "Your scenario does not appear to be covered or mentioned in the selected policy documents.",
-            "insurer_name": "NOT VERIFIED",
-            "insurer_evidence": "No evidence found",
-            "approval_probability": 0,
-            "approval_probability_reason": "No relevant coverage clauses were found in the context.",
-            "missing_requirements": ["Provide a scenario relevant to the policy"],
-            "confidence_score": 0,
-            "confidence_factors": ["No matching clauses found"],
-            "risk_level": "High Risk",
-            "risk_evaluation": ["Unrelated claim scenario"],
-            "policy_clause_used": {
-                "clause_text": "None",
-                "source": "None"
-            },
-            "hidden_clause": [],
-            "recommended_actions": ["Review your policy type and ensure you are filing under the correct insurance plan."],
-            "claim_analysis_summary": "We could not find any evidence in the selected policy that covers this scenario.",
-            "granular_coverage_breakdown": {
-                "fully_covered": [],
-                "subject_to_sub_limits": [],
-                "out_of_scope_excluded": ["The entire scenario appears out of scope."]
-            },
-            "strategic_enhancements": []
-        }
     except Exception as e:
         logger.error(f"Claim Outcome JSON parse error: {e}")
-        return {"error": "Failed to generate structured analysis.", "raw": response}
+        # Return strict fallback matching the schema
+        return {
+            "card1_eligibility": {
+                "overall_assessment": "Information Not Available",
+                "approval_probability": 0,
+                "confidence_score": 0,
+                "recommendation": "Insufficient policy evidence found."
+            },
+            "card2_evidence": {
+                "coverage_sections": [],
+                "supporting_evidence": "Insufficient policy evidence found.",
+                "exact_clauses": []
+            },
+            "card3_risks": {
+                "exclusions": [],
+                "limitations": [],
+                "waiting_periods": [],
+                "missing_documents": []
+            },
+            "card4_actions": {
+                "required_documents": [],
+                "claim_filing_steps": [],
+                "strategic_actions": []
+            }
+        }
 
 
 class CareEligibilityRequest(BaseModel):
@@ -230,26 +225,66 @@ class CareEligibilityRequest(BaseModel):
 @router.post("/care-eligibility")
 def evaluate_care_eligibility(req: CareEligibilityRequest, current_user = Depends(get_current_active_user)):
     try:
+        logger.info("Request received for evaluate_care_eligibility")
         # Build retrieval query using all user inputs
         query_str = f"Bank: {req.bank_name}, {req.patient_profile}, {req.condition} treatment, {req.department}, {req.admission_type} admission, {req.insurance_type}, {req.policy_age} policy duration"
         # Query Pinecone, top_k=1
+        logger.info("Generating embedding / Querying Pinecone for care eligibility...")
         context = get_context_from_pinecone(query_str, req.namespace, top_k=1)
+        logger.info("Pinecone documents retrieved successfully for care eligibility.")
     except Exception as e:
         logger.error(f"Failed to retrieve context for Care Eligibility: {e}")
         return {"error": f"Failed to retrieve policy documents: {e}"}
 
     if not context.strip():
         return {
-            "eligibility_status": "Requires Review",
-            "confidence": "Low Confidence",
-            "evidence": "No relevant policy clauses were found in the vector database.",
-            "sum_insured": "Coverage amount unavailable in retrieved documents.",
-            "coverage_limits": "Coverage amount unavailable in retrieved documents.",
-            "sub_limits": "Coverage amount unavailable in retrieved documents.",
-            "co_pay": "Coverage amount unavailable in retrieved documents.",
-            "coverage_gaps": [],
-            "action_plan": [],
-            "policy_rules_applied": []
+            "patient_information": {
+                "age_and_gender": req.patient_profile,
+                "medical_condition": req.condition,
+                "treatment_type": req.treatment_type,
+                "selected_policy": req.namespace,
+                "insurance_provider": req.bank_name,
+                "sum_insured": req.sum_insured
+            },
+            "eligibility_decision": {
+                "status": "Requires Review",
+                "confidence_level": "Low Confidence",
+                "ai_summary": "No relevant policy clauses were found in the vector database."
+            },
+            "coverage_analysis": {
+                "covered_benefits": "Coverage information unavailable.",
+                "hospitalization_coverage": "Coverage information unavailable.",
+                "surgical_coverage": "Coverage information unavailable.",
+                "icu_coverage": "Coverage information unavailable.",
+                "room_rent_coverage": "Coverage information unavailable.",
+                "coverage_limits": "Coverage information unavailable.",
+                "financial_conditions": "Coverage information unavailable."
+            },
+            "restrictions": {
+                "waiting_periods": "Unavailable.",
+                "coverage_restrictions": "Unavailable.",
+                "exclusions": "Unavailable.",
+                "risk_factors": "Unavailable."
+            },
+            "required_actions": {
+                "required_documents": [],
+                "pre_authorization_requirements": "Unavailable.",
+                "medical_documentation_needed": "Unavailable.",
+                "recommended_next_actions": []
+            },
+            "policy_evidence": [],
+            "recommendation": {
+                "coverage_strength": "Unknown",
+                "claim_approval_probability": "Unknown",
+                "risk_level": "Unknown",
+                "final_recommendation": "Manual review required."
+            },
+            "final_summary": {
+                "eligibility_verdict": "Requires Review",
+                "coverage_outlook": "Unknown",
+                "major_risks": "Lack of policy evidence.",
+                "recommended_action": "Check policy manually."
+            }
         }
 
     prompt = f"""
@@ -275,30 +310,69 @@ def evaluate_care_eligibility(req: CareEligibilityRequest, current_user = Depend
     
     Return a strictly valid JSON object matching this exact structure (NO MARKDOWN, RAW JSON ONLY):
     {{
-      "eligibility_status": "Eligible" | "Not Eligible" | "Requires Review",
-      "confidence": "High Confidence" | "Medium Confidence" | "Low Confidence",
-      "evidence": "Exact text from the document proving eligibility, or 'Eligibility cannot be determined from retrieved policy documents.'",
-      "sum_insured": "Extracted sum insured, or 'Coverage amount unavailable in retrieved documents.'",
-      "coverage_limits": "Extracted limits, or 'Coverage amount unavailable in retrieved documents.'",
-      "sub_limits": "Extracted sub-limits, or 'Coverage amount unavailable in retrieved documents.'",
-      "co_pay": "Extracted co-pay rules, or 'Coverage amount unavailable in retrieved documents.'",
-      "coverage_gaps": ["List of extracted exclusions like 'Waiting period applicable'"],
-      "action_plan": ["List of next steps like 'Collect discharge summary' based on document rules"],
-      "policy_rules_applied": [
+      "patient_information": {{
+        "age_and_gender": "Extracted from patient profile",
+        "medical_condition": "Extracted from condition",
+        "treatment_type": "Extracted from treatment type",
+        "selected_policy": "Extracted from policy name",
+        "insurance_provider": "Extracted from bank name",
+        "sum_insured": "Extracted from sum insured"
+      }},
+      "eligibility_decision": {{
+        "status": "Eligible" | "Partially Eligible" | "Not Eligible" | "Requires Review",
+        "confidence_level": "High Confidence" | "Medium Confidence" | "Low Confidence",
+        "ai_summary": "Summary explaining why the decision was reached"
+      }},
+      "coverage_analysis": {{
+        "covered_benefits": "Description of benefits",
+        "hospitalization_coverage": "Description",
+        "surgical_coverage": "Description",
+        "icu_coverage": "Description",
+        "room_rent_coverage": "Description",
+        "coverage_limits": "Description",
+        "financial_conditions": "Description (co-pay, deductibles, etc.)"
+      }},
+      "restrictions": {{
+        "waiting_periods": "Description of waiting periods",
+        "coverage_restrictions": "Description of restrictions",
+        "exclusions": "Description of exclusions",
+        "risk_factors": "Description of risk factors"
+      }},
+      "required_actions": {{
+        "required_documents": ["List of documents"],
+        "pre_authorization_requirements": "Description",
+        "medical_documentation_needed": "Description",
+        "recommended_next_actions": ["List of actions"]
+      }},
+      "policy_evidence": [
         {{
-          "rule": "Summary of rule",
-          "clause": "Exact clause text",
-          "source": "Document name or section",
-          "page": "Page number or 'Unknown'"
+          "clause_title": "Title of clause",
+          "clause_text": "Relevant clause text retrieved from policy documents",
+          "section_number": "Section Number",
+          "page_number": "Page Number"
         }}
-      ]
+      ],
+      "recommendation": {{
+        "coverage_strength": "High/Medium/Low",
+        "claim_approval_probability": "High/Medium/Low",
+        "risk_level": "High/Medium/Low",
+        "final_recommendation": "Detailed professional recommendation"
+      }},
+      "final_summary": {{
+        "eligibility_verdict": "Verdict",
+        "coverage_outlook": "Outlook",
+        "major_risks": "Risks",
+        "recommended_action": "Action"
+      }}
     }}
     
     Context:
     {context}
     """
 
-    response = analyze_policy(prompt, context)
+    logger.info("Calling Groq LLM for care eligibility analysis...")
+    response = analyze_policy(prompt, context, model="llama-3.1-8b-instant")
+    logger.info("Analysis generated successfully")
     try:
         return extract_json(response)
     except Exception as e:
@@ -516,7 +590,9 @@ def generate_recommendation(req: RecommendationRequest, current_user = Depends(g
     {combined_context}
     """
 
-    response = analyze_policy(prompt, combined_context, model="llama-3.3-70b-versatile")
+    logger.info("Calling Groq LLM for recommendation analysis...")
+    response = analyze_policy(prompt, combined_context, model="llama-3.1-8b-instant")
+    logger.info("Analysis generated successfully")
     try:
         return extract_json(response)
     except ValueError as ve:
@@ -724,45 +800,141 @@ class IrdaiComplianceRequest(BaseModel):
 @router.post("/irdai-compliance")
 def evaluate_irdai_compliance(req: IrdaiComplianceRequest, current_user = Depends(get_current_active_user)):
     try:
-        # Build retrieval query
-        query_str = f"IRDAI regulations, guidelines, compliance, rules: {req.query}"
-        # Query Pinecone in regulatory_governance namespace
-        context = get_context_from_pinecone(query_str, "regulatory_governance", top_k=2)
-    except Exception as e:
-        logger.error(f"Failed to retrieve context for IRDAI Compliance: {e}")
-        return {"error": f"Failed to retrieve policy documents: {e}"}
+        import datetime
+        # Step 1: Collect User Input
+        logger.info(f"[Step 1] Request Received. Question: {req.query}")
         
-    prompt = f"""
-    You are an expert IRDAI (Insurance Regulatory and Development Authority of India) compliance officer.
-    Analyze the user's situation strictly based on the provided IRDAI regulatory evidence.
-    
-    User Query: {req.query}
-    
-    You must output a JSON object with exactly these 6 keys. For each key, provide a clear, concise, actionable paragraph (description) tailored to the user's query. Do not hallucinate; use only the retrieved context. If no relevant info is found, state that based on the context, no specific guideline was found.
-    
-    Schema:
-    {{
-        "violations": "Description of any compliance violations detected (e.g. claim rejection, TAT delays).",
-        "insights": "Description of regulatory protection insights and policyholder rights.",
-        "escalation": "Step-by-step guide on how to escalate this specific complaint.",
-        "responsibility": "Description of the insurer's obligations and whether they were met.",
-        "riskAlerts": "Any potential consumer risks (lapsing, underinsurance, etc.) identified.",
-        "aiAnalysis": "Overall AI conclusion and actionable recommendation based on IRDAI norms."
-    }}
-    
-    POLICY EVIDENCE:
-    {context}
-    """
-    
-    response = analyze_policy(prompt, context)
-    
-    try:
-        data = extract_json(response)
-        data["sourceContext"] = context
-        return data
+        # Step 2: Validate Input & Step 3: Sanitize Input
+        query = req.query.strip()
+        if not query:
+            logger.error("Input validation failed: empty query")
+            raise HTTPException(status_code=400, detail="Please enter a compliance-related question.")
+            
+        # Step 4: Generate Embedding (Uncached, new every time as per rules)
+        try:
+            query_vec = get_embedding_uncached(query)
+            logger.info("[Step 4] Embedding Generated successfully.")
+        except Exception as e:
+            logger.error(f"Failed to generate embedding: {e}")
+            raise HTTPException(status_code=500, detail="Failed to generate embedding for the query.")
+            
+        # Step 5: Search Pinecone & Step 6: Apply Metadata Filters
+        try:
+            namespace = "regulatory_governance"
+            logger.info(f"[Step 5] Pinecone Query Executed. Namespace: {namespace}")
+            results = query_vectors(query_vec, namespace, top_k=15)
+        except Exception as e:
+            logger.error(f"Pinecone retrieval failed: {e}")
+            raise HTTPException(status_code=500, detail="Unable to retrieve IRDAI compliance documents. Please try again later.")
+        
+        # Step 7: Validate Retrieved Context
+        contexts = []
+        scores = []
+        
+        if results and "matches" in results:
+            for match in results["matches"]:
+                score = match.get("score", 0)
+                # Verify similarity score threshold (e.g. > 0.65 to allow deeper context)
+                if score < 0.65:
+                    continue
+                    
+                if "metadata" in match and "text" in match["metadata"]:
+                    contexts.append(match["metadata"]["text"])
+                    scores.append(score)
+                    
+        logger.info(f"[Step 7] Context Validated. Top-K Results Retrieved: {len(contexts)} documents. Scores: {scores}")
+        
+        # Verify documents exist and context length
+        context_str = "\n\n---\n\n".join(contexts)
+        
+        if len(contexts) == 0 or len(context_str.strip()) < 10:
+            logger.warning("No relevant IRDAI regulatory evidence was found for the submitted query.")
+            # Do not call Groq. Stop processing.
+            return {"error": "No relevant IRDAI guidance was found for this question. Please refine your query."}
+            
+        logger.info(f"[Step 8] Context Constructed. Context Length: {len(context_str)} chars.")
+        
+        # Step 8: Construct Groq Prompt
+        prompt = f"""
+You are an expert IRDAI (Insurance Regulatory and Development Authority of India) compliance officer.
+Analyze the user's situation strictly based on the provided IRDAI regulatory evidence.
+DO NOT hallucinate. DO NOT use prior knowledge.
+
+Focus on identifying and explaining specifics regarding: Policyholder Rights, Waiting Periods, Claims, Grievances, Disclosures, Consumer Protection, Mis-selling, and Policy Servicing.
+The AI MUST:
+- Explain the regulation clearly.
+- Explain insurer obligations.
+- Explain policyholder rights.
+- Explain available actions.
+- Use retrieved evidence.
+- Avoid generic fallback text.
+
+NEVER answer with: "No specific information available", "Generic regulatory context", or "Placeholder text" unless Pinecone genuinely returns no relevant evidence.
+
+Original user question: {query}
+Regulatory context:
+{context_str}
+
+Return EXACTLY a raw JSON object (NO Markdown, NO code blocks) matching this precise schema. Do NOT use Unknown, Null, Undefined, N/A, Dummy Content, or Placeholder Text.
+{{
+    "compliance_explanation": "...",
+    "policyholder_rights": [
+        "..."
+    ],
+    "insurer_responsibilities": [
+        "..."
+    ],
+    "recommended_action": "...",
+    "irdai_guidance_summary": "..."
+}}
+"""
+        logger.info("[Step 8] Groq Request Sent.")
+
+        # Step 9: Generate Structured Answer
+        try:
+            response_text = analyze_policy(prompt, context_str)
+            logger.info(f"[Step 9] Groq Response Received. Response Length: {len(response_text)} chars.")
+        except Exception as e:
+            logger.error(f"Groq generation failed: {e}")
+            raise HTTPException(status_code=500, detail="Unable to generate compliance guidance. Please try again later.")
+        
+        # Step 10: Validate Output
+        try:
+            data = extract_json(response_text)
+        except Exception as e:
+            logger.error(f"Failed to parse JSON from groq: {e}, Raw: {response_text}")
+            raise HTTPException(status_code=500, detail="Failed to parse analysis results from LLM.")
+            
+        sanitized_data = sanitize_response(data)
+        
+        # Enforce rejection of dummy content by checking the sanitized data explicitly
+        if not sanitized_data or is_invalid_value(str(sanitized_data)):
+             raise HTTPException(status_code=500, detail="Generated response contained invalid dummy content.")
+             
+        # Step 12: Store Audit Log
+        timestamp = datetime.datetime.utcnow().isoformat() + "Z"
+        logger.info(f"""
+=================================================
+AUDIT LOG
+Timestamp: {timestamp}
+Question: {query}
+Namespace: {namespace}
+Retrieved Documents: {len(contexts)}
+Similarity Scores: {scores}
+Prompt Length: {len(prompt)} chars
+Response Length: {len(response_text)} chars
+=================================================
+""")
+
+        # Step 11: Render Answer (Return to frontend)
+        logger.info("[Step 11] Final Response Returned.")
+        return sanitized_data
+        
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Failed to parse JSON from groq: {e}, Raw: {response}")
-        return {"error": "Failed to parse analysis results"}
+        logger.error(f"Unexpected error in /irdai-compliance pipeline: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 class AiAssistantRequest(BaseModel):
     query: str
@@ -864,3 +1036,110 @@ User Query: {req.query}
         # Just wrap it in a JSON object
         clean = response.replace("```json", "").replace("```", "").strip()
         return {"response": clean}
+
+class IrdaiComplianceRequest(BaseModel):
+    query: str
+
+@router.post("/irdai-compliance")
+def analyze_irdai_compliance(req: IrdaiComplianceRequest, current_user = Depends(get_current_active_user)):
+    try:
+        logger.info("Request received for analyze_irdai_compliance")
+        # Query multiple namespaces
+        namespaces = ["regulatory_governance", "banking_governance", "internal_governance"]
+        context = get_multi_context_from_pinecone(req.query, namespaces, top_k=3)
+
+        if not context or context.strip() == "":
+            return {
+                "query_summary": {
+                    "user_question": req.query,
+                    "compliance_category": "Unknown",
+                    "issue_summary": "No supporting regulatory evidence was found in the compliance knowledge base."
+                },
+                "compliance_findings": {
+                    "compliance_status": "Unknown",
+                    "assessment_summary": "No supporting regulatory evidence was found in the compliance knowledge base."
+                },
+                "policyholder_rights": [
+                    {
+                        "right": "Information Unavailable",
+                        "explanation": "No evidence retrieved."
+                    }
+                ],
+                "evidence_references": [],
+                "recommended_action_plan": {
+                    "immediate_actions": ["No actions can be recommended without evidence."],
+                    "escalation_path": ["Insurance Company", "Grievance Officer", "IRDAI Grievance Mechanism", "Insurance Ombudsman"],
+                    "final_recommendation": "Please contact support for manual guidance."
+                }
+            }
+
+        prompt = f"""
+You are an AI-powered IRDAI Compliance Regulatory Assistant.
+Your goal is to assess a user's compliance-related query using ONLY the provided regulatory evidence.
+
+Do not use outside knowledge. Do not hallucinate. Do not generate assumptions.
+If the retrieved evidence does not contain the answer, state that explicitly.
+
+User Query: {req.query}
+
+Retrieved Pinecone Evidence:
+{context}
+
+You must return a raw JSON object matching EXACTLY this structure:
+{{
+  "query_summary": {{
+    "user_question": "The user's original question",
+    "compliance_category": "e.g., Claim Settlement Issue, Mis-selling, Policy Servicing, Grievance",
+    "issue_summary": "A short summary explaining the user's concern"
+  }},
+  "compliance_findings": {{
+    "compliance_status": "✓ Compliant, ⚠ Potential Concern, or ✗ Non-Compliant",
+    "assessment_summary": "Explanation based strictly on retrieved regulatory evidence: what regulations apply, whether a concern exists, and what the user should understand."
+  }},
+  "policyholder_rights": [
+    {{
+      "right": "Applicable protection (e.g., Right to transparent disclosure)",
+      "explanation": "Clear explanation of this right"
+    }}
+  ],
+  "evidence_references": [
+    {{
+      "regulation_title": "Title of the regulation or document",
+      "retrieved_content": "Exact or heavily summarized text from the evidence",
+      "source_namespace": "The namespace this came from, if known, else 'regulatory_governance'",
+      "document_name": "Name of the source document",
+      "section_number": "Section or Clause number, if available",
+      "page_number": "Page number, if available"
+    }}
+  ],
+  "recommended_action_plan": {{
+    "immediate_actions": [
+      "Action 1",
+      "Action 2"
+    ],
+    "escalation_path": [
+      "Insurance Company",
+      "Grievance Officer",
+      "IRDAI Grievance Mechanism",
+      "Insurance Ombudsman"
+    ],
+    "final_recommendation": "Professional regulatory guidance summary"
+  }}
+}}
+
+Return ONLY valid JSON. Do not include markdown tags like ```json.
+"""
+        response = analyze_policy(prompt, context)
+        try:
+            data = extract_json(response)
+            return data
+        except Exception as e:
+            # Fallback for parsing error
+            logger.error(f"Error extracting JSON from LLM: {{e}}")
+            logger.error(f"Raw Response: {{response}}")
+            raise HTTPException(status_code=500, detail="Failed to parse LLM response into JSON.")
+            
+    except Exception as e:
+        logger.error(f"Error in evaluate_irdai_compliance: {{e}}")
+        raise HTTPException(status_code=500, detail=str(e))
+

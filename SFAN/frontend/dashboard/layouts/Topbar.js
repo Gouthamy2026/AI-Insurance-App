@@ -2,13 +2,7 @@ export const Topbar = (user) => {
     return `
         <header style="display: flex; justify-content: space-between; align-items: center; padding: 15px 40px; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100;">
             
-            <!-- Global Search Bar -->
-            <div style="flex: 1; max-width: 500px; position: relative;">
-                <div style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none;">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                </div>
-                <input type="text" id="topbar-search-input" placeholder="Search policies, documents, reports, and insights..." style="width: 100%; padding: 12px 16px 12px 45px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.08); background: rgba(248, 249, 250, 0.8); font-size: 14px; color: var(--text-main); outline: none; transition: all 0.2s;" onfocus="this.style.background='#fff'; this.style.borderColor='var(--primary)';" onblur="this.style.background='rgba(248, 249, 250, 0.8)'; this.style.borderColor='rgba(0,0,0,0.08)';" onkeypress="if(event.key === 'Enter' && this.value.trim() !== '') { const val = this.value; this.value = ''; window.handleNavClick('ai-assistant'); setTimeout(() => { if(window.AiAssistantActions) window.AiAssistantActions.setQuery(val); }, 100); }">
-            </div>
+            <!-- Global Search Bar Removed -->
 
             <style>
                 @keyframes pulseGlow {

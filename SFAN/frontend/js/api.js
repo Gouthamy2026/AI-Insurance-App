@@ -1,6 +1,4 @@
-const API_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:') 
-    ? 'http://127.0.0.1:8000' 
-    : 'https://your-production-api.com';
+const API_URL = '';
 
 class ApiClient {
     static getToken() {

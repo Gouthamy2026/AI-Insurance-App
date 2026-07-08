@@ -23,3 +23,6 @@ def get_embeddings(texts: list[str], input_type: str = "passage"):
 @lru_cache(maxsize=100)
 def get_embedding(text: str):
     return get_embeddings([text], input_type="query")[0]
+
+def get_embedding_uncached(text: str):
+    return get_embeddings([text], input_type="query")[0]
