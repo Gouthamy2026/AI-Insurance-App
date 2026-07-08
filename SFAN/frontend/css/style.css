@@ -2805,3 +2805,65 @@ box-shadow: -5px 0 25px rgba(0, 0, 0, 0.05);
     background: var(--primary);
     border-radius: 4px;
 }
+
+body.dark-theme {
+    --bg-dark: #121212 !important;
+    --bg-panel: #1E1E1E !important;
+    --primary: #FF7043 !important;
+    --primary-hover: #FF8A65 !important;
+    --text-main: #FFFFFF !important;
+    --text-sub: #E0E0E0 !important;
+    --text-secondary: #B0B0B0 !important;
+    --text-muted: #9CA3AF !important;
+    --border: #333333 !important;
+    --border-light: #2A2A2A !important;
+    --surface-hover: #2D2D2D !important;
+    --shadow-soft: 0 4px 6px -1px rgba(0, 0, 0, 0.5) !important;
+    background-color: var(--bg-dark) !important;
+    color: var(--text-main) !important;
+}
+
+body.dark-theme .dashboard-bg,
+body.dark-theme .dashboard-content,
+body.dark-theme .main-content {
+    background: var(--bg-dark) !important;
+}
+
+body.dark-theme [style*="background: white"],
+body.dark-theme [style*="background: #FFFFFF"],
+body.dark-theme [style*="background: #ffffff"],
+body.dark-theme [style*="background-color: white"] {
+    background: var(--bg-panel) !important;
+    border-color: var(--border) !important;
+}
+
+body.dark-theme [style*="color: #111827"],
+body.dark-theme [style*="color: #1f2937"] {
+    color: var(--text-main) !important;
+}
+
+body.dark-theme [style*="color: #4B5563"],
+body.dark-theme [style*="color: #6B7280"] {
+    color: var(--text-muted) !important;
+}
+
+body.dark-theme [style*="border: 1px solid #E5E7EB"],
+body.dark-theme [style*="border-bottom: 1px solid #E5E7EB"],
+body.dark-theme [style*="border-color: #E5E7EB"],
+body.dark-theme [style*="border-top: 1px solid #E5E7EB"] {
+    border-color: var(--border) !important;
+}
+
+body.dark-theme [style*="background: #F9FAFB"],
+body.dark-theme [style*="background: #F3F4F6"] {
+    background: var(--surface-hover) !important;
+}
+
+body.dark-theme input,
+body.dark-theme select,
+body.dark-theme textarea {
+    background: var(--bg-dark) !important;
+    color: var(--text-main) !important;
+    border-color: var(--border) !important;
+}
+

@@ -12,16 +12,16 @@ export const InsuranceLocker = () => {
                 const insurer = document.getElementById('pol-insurer').value.trim();
                 const number = document.getElementById('pol-number').value.trim();
                 const expiry = document.getElementById('pol-expiry').value;
-                
+
                 if (!name || !type || !insurer || !number || !expiry) {
                     alert('Please fill out all fields to record the policy.');
                     return;
                 }
-                
+
                 const policies = JSON.parse(localStorage.getItem('sfan_policies') || '[]');
                 policies.push({ id: Date.now(), name, type, insurer, number, expiry, dateAdded: new Date().toISOString() });
                 localStorage.setItem('sfan_policies', JSON.stringify(policies));
-                
+
                 // Refresh
                 document.getElementById('dashboard-root').innerHTML = InsuranceLocker();
             },
@@ -54,15 +54,22 @@ export const InsuranceLocker = () => {
         };
     }
 
-    const policies = JSON.parse(localStorage.getItem('sfan_policies') || '[]');
-
-    const tableRows = policies.length === 0 
+    let policies = JSON.parse(localStorage.getItem('sfan_policies') || 'null');
+    if (!policies || policies.length === 0) {
+        policies = [
+            { id: 1, name: 'Family Health Plan', type: 'Health', insurer: 'BlueCross', number: 'POL-12345', expiry: '2025-10-12', dateAdded: new Date().toISOString() },
+            { id: 2, name: 'Term Life Cover', type: 'Life', insurer: 'Prudential', number: 'PRU-98765', expiry: '2043-05-20', dateAdded: new Date().toISOString() },
+            { id: 3, name: 'Auto Comprehensive', type: 'Auto', insurer: 'Geico', number: 'GCO-55443', expiry: '2024-08-15', dateAdded: new Date().toISOString() }
+        ];
+        localStorage.setItem('sfan_policies', JSON.stringify(policies));
+    }
+    const tableRows = policies.length === 0
         ? `<tr><td colspan="6" style="text-align: center; padding: 48px; color: #111827;">
              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 12px; color: #111827;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
              <p style="margin: 0; font-size: 18px; font-weight: 600; color: #111827;">No policies found in your locker.</p>
              <p style="margin: 4px 0 0 0; font-size: 15px; color: #111827;">Upload your first policy document above.</p>
-           </td></tr>`
-        : policies.map(p => `
+           </td></tr>`give
+            : policies.map(p => `
             <tr class="policy-row" style="border-bottom: 1px solid #E5E7EB; transition: background 0.2s;" onmouseover="this.style.background='#F9FAFB'" onmouseout="this.style.background='white'">
                 <td style="padding: 16px; font-size: 16px; font-weight: 700; color: #111827; display: flex; align-items: center; gap: 8px;">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
@@ -73,10 +80,10 @@ export const InsuranceLocker = () => {
                 <td style="padding: 16px; font-size: 15px; font-weight: 500; color: #111827; font-family: monospace;">${p.number}</td>
                 <td style="padding: 16px; font-size: 15px; font-weight: 500; color: #111827;">${p.expiry}</td>
                 <td style="padding: 16px; font-size: 14px; text-align: right;">
-                    <button onclick="window.InsuranceLockerActions.view('${p.name}')" style="background: none; border: none; color: #3B82F6; cursor: pointer; font-weight: 500; padding: 4px 8px; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='#EFF6FF'" onmouseout="this.style.background='transparent'" title="View Policy"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
-                    <button onclick="window.InsuranceLockerActions.download('${p.name}')" style="background: none; border: none; color: #10B981; cursor: pointer; font-weight: 500; padding: 4px 8px; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='#ECFDF5'" onmouseout="this.style.background='transparent'" title="Download"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></button>
-                    <button onclick="window.InsuranceLockerActions.analyze('${p.name}')" style="background: none; border: none; color: #8B5CF6; cursor: pointer; font-weight: 500; padding: 4px 8px; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='#F5F3FF'" onmouseout="this.style.background='transparent'" title="Select for Analysis"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 16 16 12 12 8"></polyline><line x1="8" y1="12" x2="16" y2="12"></line></svg></button>
-                    <button onclick="window.InsuranceLockerActions.delete(${p.id})" style="background: none; border: none; color: #EF4444; cursor: pointer; font-weight: 500; padding: 4px 8px; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='#FEF2F2'" onmouseout="this.style.background='transparent'" title="Delete"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+                    <button type="button" onclick="window.InsuranceLockerActions.view('${p.name}')" style="background: none; border: none; color: #3B82F6; cursor: pointer; font-weight: 500; padding: 4px 8px; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='#EFF6FF'" onmouseout="this.style.background='transparent'" title="View Policy"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+                    <button type="button" onclick="window.InsuranceLockerActions.download('${p.name}')" style="background: none; border: none; color: #10B981; cursor: pointer; font-weight: 500; padding: 4px 8px; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='#ECFDF5'" onmouseout="this.style.background='transparent'" title="Download"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></button>
+                    <button type="button" onclick="window.InsuranceLockerActions.analyze('${p.name}')" style="background: none; border: none; color: #8B5CF6; cursor: pointer; font-weight: 500; padding: 4px 8px; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='#F5F3FF'" onmouseout="this.style.background='transparent'" title="Select for Analysis"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 16 16 12 12 8"></polyline><line x1="8" y1="12" x2="16" y2="12"></line></svg></button>
+                    <button type="button" onclick="window.InsuranceLockerActions.delete(${p.id})" style="background: none; border: none; color: #EF4444; cursor: pointer; font-weight: 500; padding: 4px 8px; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='#FEF2F2'" onmouseout="this.style.background='transparent'" title="Delete"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
                 </td>
             </tr>
         `).join('');
@@ -102,7 +109,7 @@ export const InsuranceLocker = () => {
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2" style="position: absolute; left: 14px; top: 12px;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                             <input type="text" placeholder="Search policies..." onkeyup="window.InsuranceLockerActions.search(this.value)" style="padding: 13px 16px 13px 44px; border: 1px solid #CBD5E1; border-radius: 10px; font-size: 16px; color: #111827; outline: none; transition: all 0.2s; width: 280px; box-shadow: 0 2px 6px rgba(0,0,0,0.02);" onfocus="this.style.borderColor='#3B82F6'; this.style.boxShadow='0 4px 12px rgba(59,130,246,0.1)'" onblur="this.style.borderColor='#CBD5E1'; this.style.boxShadow='0 2px 6px rgba(0,0,0,0.02)'">
                         </div>
-                        <button onclick="window.InsuranceLockerActions.toggleForm()" style="background: #0F172A; color: white; border: none; padding: 13px 26px; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; transition: transform 0.2s, background 0.2s; display: flex; align-items: center; gap: 10px; box-shadow: 0 4px 12px rgba(15,23,42,0.15);" onmouseover="this.style.background='#1E293B'; this.style.transform='translateY(-1px)'" onmouseout="this.style.background='#0F172A'; this.style.transform='translateY(0)'">
+                        <button type="button" onclick="window.InsuranceLockerActions.toggleForm()" style="background: #0F172A; color: white; border: none; padding: 13px 26px; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; transition: transform 0.2s, background 0.2s; display: flex; align-items: center; gap: 10px; box-shadow: 0 4px 12px rgba(15,23,42,0.15);" onmouseover="this.style.background='#1E293B'; this.style.transform='translateY(-1px)'" onmouseout="this.style.background='#0F172A'; this.style.transform='translateY(0)'">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                             Upload Policy
                         </button>
@@ -150,8 +157,8 @@ export const InsuranceLocker = () => {
                     </div>
                 </div>
                 <div style="display: flex; justify-content: flex-end; gap: 12px;">
-                    <button onclick="window.InsuranceLockerActions.toggleForm()" style="background: white; color: #374151; border: 1px solid #D1D5DB; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer;">Cancel</button>
-                    <button onclick="window.InsuranceLockerActions.upload()" style="background: #3B82F6; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;">Save Record</button>
+                    <button type="button" onclick="window.InsuranceLockerActions.toggleForm()" style="background: white; color: #374151; border: 1px solid #D1D5DB; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer;">Cancel</button>
+                    <button type="button" onclick="window.InsuranceLockerActions.upload()" style="background: #3B82F6; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;">Save Record</button>
                 </div>
             </div>
 

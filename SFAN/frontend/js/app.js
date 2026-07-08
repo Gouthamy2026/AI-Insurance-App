@@ -1,4 +1,5 @@
-﻿document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {
+
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
         if (localStorage.getItem('rememberedEmail')) {
@@ -25,6 +26,7 @@
             const rememberMe = document.getElementById('rememberMe').checked;
             
             try {
+                errorMsg.textContent = '';
                 const data = await ApiClient.login(email, password);
                 localStorage.setItem('token', data.access_token);
                 const payload = JSON.parse(atob(data.access_token.split('.')[1]));
@@ -38,9 +40,19 @@
                 
                 window.location.href = 'welcome.html';
             } catch (error) {
-                errorMsg.textContent = error.message;
+                console.error("Backend login failed.", error);
+                errorMsg.textContent = error.message || "Backend server offline or unreachable. Please try again.";
             }
         });
+
+        const guestBtn = document.getElementById('guestBtn');
+        if (guestBtn) {
+            guestBtn.addEventListener('click', () => {
+                localStorage.setItem('token', 'demo-token');
+                localStorage.setItem('user', JSON.stringify({ email: 'guest@sfan.com', role: 'Guest', fullName: 'Guest User' }));
+                window.location.href = 'welcome.html';
+            });
+        }
         
         return;
     }

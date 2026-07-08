@@ -55,8 +55,14 @@ export const InsuranceGoals = () => {
         };
     }
 
-    const goals = JSON.parse(localStorage.getItem('sfan_insurance_goals') || '[]');
-
+    let goals = JSON.parse(localStorage.getItem('sfan_insurance_goals') || 'null');
+    if (!goals || goals.length === 0) {
+        goals = [
+            { id: 1, title: 'Critical Illness Coverage', desc: 'Secure comprehensive cover for major illnesses including cancer and heart conditions.' },
+            { id: 2, title: 'Family Protection Fund', desc: 'Ensure financial stability for dependents in case of unforeseen circumstances.' }
+        ];
+        localStorage.setItem('sfan_insurance_goals', JSON.stringify(goals));
+    }
     const goalsListHTML = goals.length === 0 
         ? `<div style="grid-column: 1 / -1; text-align: center; padding: 60px 40px; color: #111827; background: #F9FAFB; border-radius: 8px; border: 2px dashed #E5E7EB; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px;">
              <img src="assets/insurance_goal.png" alt="Insurance Goal" style="width: 380px; height: auto; mix-blend-mode: multiply; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.1)); margin-bottom: 24px;">
@@ -73,11 +79,11 @@ export const InsuranceGoals = () => {
                     <p style="margin: 0 0 20px 0; font-size: 16px; font-weight: 500; color: #111827; line-height: 1.6; word-break: break-word;">${goal.desc}</p>
                 </div>
                 <div style="display: flex; gap: 8px; justify-content: flex-end; border-top: 1px solid #F3F4F6; padding-top: 16px; margin-top: auto;">
-                    <button onclick="window.InsuranceGoalsActions.edit(${goal.id})" style="background: white; border: 1px solid #D1D5DB; color: #374151; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s;" onmouseover="this.style.background='#F3F4F6'" onmouseout="this.style.background='white'">
+                    <button type="button" onclick="window.InsuranceGoalsActions.edit(${goal.id})" style="background: white; border: 1px solid #D1D5DB; color: #374151; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s;" onmouseover="this.style.background='#F3F4F6'" onmouseout="this.style.background='white'">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                         Edit
                     </button>
-                    <button onclick="window.InsuranceGoalsActions.delete(${goal.id})" style="background: #FEF2F2; border: 1px solid #FECACA; color: #DC2626; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s;" onmouseover="this.style.background='#FEE2E2'" onmouseout="this.style.background='#FEF2F2'">
+                    <button type="button" onclick="window.InsuranceGoalsActions.delete(${goal.id})" style="background: #FEF2F2; border: 1px solid #FECACA; color: #DC2626; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s;" onmouseover="this.style.background='#FEE2E2'" onmouseout="this.style.background='#FEF2F2'">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                         Delete
                     </button>
@@ -115,7 +121,7 @@ export const InsuranceGoals = () => {
                             <label style="display: block; font-size: 15px; font-weight: 700; color: #111827; margin-bottom: 10px;">Goal Description</label>
                             <textarea id="goal-desc" placeholder="Detail the specific requirements and reasoning for this goal..." rows="4" style="width: 100%; padding: 12px 16px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 16px; color: #111827; outline: none; transition: border-color 0.2s; box-sizing: border-box; resize: vertical;" onfocus="this.style.borderColor='#3B82F6'" onblur="this.style.borderColor='#D1D5DB'"></textarea>
                         </div>
-                        <button id="goal-save-btn" onclick="window.InsuranceGoalsActions.save()" style="width: 100%; background: #111827; color: white; border: none; padding: 12px 20px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;" onmouseover="this.style.background='#374151'" onmouseout="this.style.background='#111827'">
+                        <button type="button" id="goal-save-btn" onclick="window.InsuranceGoalsActions.save()" style="width: 100%; background: #111827; color: white; border: none; padding: 12px 20px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;" onmouseover="this.style.background='#374151'" onmouseout="this.style.background='#111827'">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                             Save Goal
                         </button>

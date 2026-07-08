@@ -87,7 +87,7 @@ export const InsuranceJourney = () => {
             actionsHtml = `
                 <div style="display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap;">
                     ${msg.actions.map(action => `
-                        <button onclick="window.InsuranceJourneyActions.triggerAction('${action}')" style="background: transparent; border: 1px solid rgba(0,0,0,0.15); color: #374151; padding: 10px 20px; border-radius: 100px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.3s ease;" onmouseover="this.style.background='#111827'; this.style.color='#FFFFFF'; this.style.borderColor='#111827';" onmouseout="this.style.background='transparent'; this.style.color='#374151'; this.style.borderColor='rgba(0,0,0,0.15)';">${action}</button>
+                        <button type="button" onclick="window.InsuranceJourneyActions.triggerAction('${action}')" style="background: transparent; border: 1px solid rgba(0,0,0,0.15); color: #374151; padding: 10px 20px; border-radius: 100px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.3s ease;" onmouseover="this.style.background='#111827'; this.style.color='#FFFFFF'; this.style.borderColor='#111827';" onmouseout="this.style.background='transparent'; this.style.color='#374151'; this.style.borderColor='rgba(0,0,0,0.15)';">${action}</button>
                     `).join('')}
                 </div>
             `;
@@ -294,7 +294,7 @@ export const InsuranceJourney = () => {
                 <div class="journey-input-area">
                     <div class="journey-input-wrapper">
                         <input id="journey-input-field" type="text" class="journey-input" placeholder="Type a message or event..." onkeypress="if(event.key === 'Enter') window.InsuranceJourneyActions.sendMessage()">
-                        <button class="journey-send-btn" onclick="window.InsuranceJourneyActions.sendMessage()">
+                        <button type="button" class="journey-send-btn" onclick="window.InsuranceJourneyActions.sendMessage()">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                         </button>
                     </div>

@@ -60,3 +60,57 @@ def document_stats(db: Session = Depends(get_db), current_user = Depends(get_cur
         "pending": pending,
         "failed": failed
     }
+
+from pydantic import BaseModel
+from backend.services.embedding_service import get_embedding
+from backend.services.pinecone_service import query_vectors_multi_namespace
+from backend.core.config import settings
+import json
+
+class SearchRequest(BaseModel):
+    query: str
+    top_k: int = 3
+
+@router.post("/search")
+def global_search(req: SearchRequest, db: Session = Depends(get_db), current_user = Depends(get_current_active_user)):
+    try:
+        # Get all namespaces
+        pinecone_namespaces = []
+        if settings.PINECONE_NAMESPACE:
+            try:
+                pinecone_namespaces = json.loads(settings.PINECONE_NAMESPACE)
+            except Exception:
+                pass
+        
+        if not pinecone_namespaces:
+            return {"results": []}
+            
+        # Embed query
+        query_vec = get_embedding(req.query)
+        
+        # Search all namespaces
+        results = query_vectors_multi_namespace(query_vec, pinecone_namespaces, top_k_per_namespace=2)
+        
+        matches = []
+        if results and "matches" in results:
+            # Sort by score and take top_k
+            sorted_matches = sorted(results["matches"], key=lambda x: x.get("score", 0), reverse=True)
+            top_matches = sorted_matches[:req.top_k]
+            
+            for m in top_matches:
+                meta = m.get("metadata", {})
+                text = meta.get("text", "")
+                # Create a short snippet
+                snippet = text[:150] + "..." if len(text) > 150 else text
+                
+                matches.append({
+                    "namespace": m.get("namespace", "Unknown"),
+                    "score": round(m.get("score", 0) * 100, 1),
+                    "snippet": snippet
+                })
+                
+        return {"results": matches}
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Global search error: {e}")
+        return {"error": str(e), "results": []}

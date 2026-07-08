@@ -108,11 +108,38 @@ export const Home = (user, data) => {
                     <div class="premium-hover-box" style="height: auto;">
                         ${PolicyOverview(data?.policy_overview)}
                     </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px;">
+                        <!-- Claim Assessment Card -->
+                        <div class="premium-hover-box" onclick="handleNavClick('claim-assessment')" style="cursor: pointer;">
+                            <div style="display: flex; align-items: flex-start; gap: 16px;">
+                                <div style="width: 48px; height: 48px; border-radius: 12px; background: #E0E7FF; display: flex; justify-content: center; align-items: center; flex-shrink: 0;">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                </div>
+                                <div>
+                                    <h3 style="font-size: 16px; font-weight: 700; color: #1F2937; margin: 0 0 4px 0;">Claim Assessment</h3>
+                                    <p style="font-size: 13px; color: #6B7280; margin: 0; line-height: 1.5;">Intelligent claims analysis and comprehensive report generation based on policy details.</p>
+                                </div>
+                            </div>
+                        </div>
 
+                        <!-- Health Coverage Verification Card -->
+                        <div class="premium-hover-box" onclick="handleNavClick('health-coverage-verification')" style="cursor: pointer;">
+                            <div style="display: flex; align-items: flex-start; gap: 16px;">
+                                <div style="width: 48px; height: 48px; border-radius: 12px; background: #DCFCE7; display: flex; justify-content: center; align-items: center; flex-shrink: 0;">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+                                </div>
+                                <div>
+                                    <h3 style="font-size: 16px; font-weight: 700; color: #1F2937; margin: 0 0 4px 0;">Health Coverage Verification</h3>
+                                    <p style="font-size: 13px; color: #6B7280; margin: 0; line-height: 1.5;">Verify health procedures and treatments against active policies to determine eligibility.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="premium-hover-box" style="height: auto;">
                         ${RecentActivity(data?.recent_activity)}
                     </div>
-                    
                 </div>
             </div>
         </section>

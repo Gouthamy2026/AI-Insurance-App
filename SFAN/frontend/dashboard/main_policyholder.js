@@ -1,18 +1,16 @@
-import { useDashboardState } from './hooks/useDashboardState.js?v=2';
-import { Sidebar } from './layouts/SidebarPolicyholder.js?v=2';
-import { Topbar } from './layouts/Topbar.js?v=2';
-import { Home } from './pages/Home.js?v=8';
+import { useDashboardState } from './hooks/useDashboardState.js';
+import { Sidebar } from './layouts/SidebarPolicyholder.js';
+import { Topbar } from './layouts/Topbar.js';
+import { Home } from './pages/Home.js';
 import { ProfileSettingsHub } from './pages/ProfileSettingsHub.js';
-import { InsuranceGoals } from './pages/InsuranceGoals.js?v=6';
-import { InsuranceLocker } from './pages/InsuranceLocker.js?v=3';
-import { InsuranceJourney } from './pages/InsuranceJourney.js?v=2';
-import { ClaimOutcomeAnalyzer } from './pages/ClaimOutcomeAnalyzer.js?v=21';
-import { CareEligibilityEngine } from './pages/CareEligibilityEngine.js?v=1';
-import { AiAssetCoverageAdvisor } from './pages/AiAssetCoverageAdvisor.js';
-import { AiAssistant } from './pages/AiAssistant.js?v=3';
-import { IrdaiComplianceEngine } from './pages/IrdaiComplianceEngine.js';
-import { ModulePlaceholder } from './pages/ModulePlaceholder.js?v=2';
+import { InsuranceGoals } from './pages/InsuranceGoals.js';
+import { InsuranceLocker } from './pages/InsuranceLocker.js';
+import { InsuranceJourney } from './pages/InsuranceJourney.js';
+import { AiAssistant } from './pages/AiAssistant.js';
+import { ModulePlaceholder } from './pages/ModulePlaceholder.js';
 import { DashboardService } from './services/dashboardApi.js';
+import { ClaimAssessmentReportCenter } from './pages/ClaimAssessmentReportCenter.js';
+import { HealthCoverageVerificationHub } from './pages/HealthCoverageVerificationHub.js';
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -56,16 +54,14 @@ document.addEventListener('DOMContentLoaded', () => {
             dashboardRoot.innerHTML = InsuranceLocker();
         } else if (state.activeModule === 'insurance-journey') {
             dashboardRoot.innerHTML = InsuranceJourney();
-        } else if (state.activeModule === 'claim-outcome') {
-            dashboardRoot.innerHTML = ClaimOutcomeAnalyzer();
-        } else if (state.activeModule === 'care-eligibility-engine') {
-            dashboardRoot.innerHTML = CareEligibilityEngine();
-        } else if (state.activeModule === 'ai-asset-coverage') {
-            dashboardRoot.innerHTML = AiAssetCoverageAdvisor();
-        } else if (state.activeModule === 'irdai-compliance-engine') {
-            dashboardRoot.innerHTML = IrdaiComplianceEngine();
         } else if (state.activeModule === 'ai-assistant') {
             dashboardRoot.innerHTML = AiAssistant(user);
+        } else if (state.activeModule === 'claim-assessment') {
+            dashboardRoot.innerHTML = ClaimAssessmentReportCenter();
+            if (window.initClaimAssessmentReportCenter) window.initClaimAssessmentReportCenter();
+        } else if (state.activeModule === 'health-coverage-verification') {
+            dashboardRoot.innerHTML = HealthCoverageVerificationHub();
+            if (window.initHealthCoverageVerificationHub) window.initHealthCoverageVerificationHub();
         } else {
             dashboardRoot.innerHTML = ModulePlaceholder({ moduleId: state.activeModule });
         }

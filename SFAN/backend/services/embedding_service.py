@@ -15,7 +15,12 @@ def get_embeddings(texts: list[str], input_type: str = "passage"):
             inputs=texts,
             parameters={'input_type': input_type, 'truncate': 'END'}
         )
-        embeddings = [data['values'] for data in response.data]
+        embeddings = []
+        for data in response.data:
+            if hasattr(data, 'values'):
+                embeddings.append(data.values)
+            else:
+                embeddings.append(data['values'])
         return embeddings
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Pinecone Inference Error: {e}")

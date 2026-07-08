@@ -1,11 +1,74 @@
+import { AccountHubService } from '../services/accountHubApi.js';
+
+function formatRelativeDate(dateString) {
+    if (!dateString) return 'Just now';
+    const date = new Date(dateString);
+    const now = new Date();
+    
+    // Normalize to midnight for days difference
+    const dateDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const nowDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    const diffDays = Math.round((nowDay - dateDay) / (1000 * 60 * 60 * 24));
+    
+    const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
+    if (diffDays === 0) return `Today, ${timeStr}`;
+    if (diffDays === 1) return `Yesterday, ${timeStr}`;
+    
+    const dateStr = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    return `${dateStr}, ${timeStr}`;
+}
+
 export const ProfileSettingsHub = (user = {}) => {
     // Initialize Actions
     if (!window.ProfileHubActions) {
         window.ProfileHubActions = {
-            switchTab: (tabId) => {
+            state: {
+                profile: null,
+                policies: null,
+                notifications: null,
+                activity: null,
+                preferences: null,
+                security: null,
+            },
+            switchTab: async (tabId) => {
                 const contentArea = document.getElementById('profile-hub-content');
                 if (contentArea) {
-                    contentArea.innerHTML = getTabContent(tabId, window.currentUserData || {});
+                    contentArea.innerHTML = `<div style="padding: 40px; text-align: center; color: #6B7280;">Loading ${tabId}...</div>`;
+                    
+                    try {
+                        let html = '';
+                        if (tabId === 'profile') {
+                            const data = await AccountHubService.getProfile();
+                            window.ProfileHubActions.state.profile = data;
+                            html = renderProfileTab(data);
+                        } else if (tabId === 'policies') {
+                            const data = await AccountHubService.getPolicies();
+                            window.ProfileHubActions.state.policies = data;
+                            html = renderPoliciesTab(data);
+                        } else if (tabId === 'notifications') {
+                            const data = await AccountHubService.getNotifications();
+                            window.ProfileHubActions.state.notifications = data;
+                            html = renderNotificationsTab(data);
+                        } else if (tabId === 'activity') {
+                            const data = await AccountHubService.getActivity();
+                            window.ProfileHubActions.state.activity = data;
+                            html = renderActivityTab(data);
+                        } else if (tabId === 'security') {
+                            const data = await AccountHubService.getSecurity();
+                            window.ProfileHubActions.state.security = data;
+                            html = renderSecurityTab(data);
+                        } else if (tabId === 'preferences') {
+                            const data = await AccountHubService.getPreferences();
+                            window.ProfileHubActions.state.preferences = data;
+                            html = renderPreferencesTab(data);
+                        }
+                        contentArea.innerHTML = html;
+                    } catch (err) {
+                        console.error(err);
+                        contentArea.innerHTML = `<div style="padding: 40px; text-align: center; color: #EF4444;">Failed to load data. Please try again.</div>`;
+                    }
                     
                     // Update active state in sidebar
                     document.querySelectorAll('.profile-nav-item').forEach(el => {
@@ -22,51 +85,90 @@ export const ProfileSettingsHub = (user = {}) => {
                     });
                 }
             },
-            toggleSwitch: (el) => {
+            togglePreference: async (el, key) => {
                 const circle = el.querySelector('.toggle-circle');
-                if (el.dataset.state === 'on') {
-                    el.dataset.state = 'off';
-                    el.style.background = '#E5E7EB';
-                    circle.style.transform = 'translateX(2px)';
-                } else {
-                    el.dataset.state = 'on';
-                    el.style.background = '#10B981';
-                    circle.style.transform = 'translateX(22px)';
+                const isCurrentlyOn = el.dataset.state === 'on';
+                const newState = !isCurrentlyOn;
+                
+                // Optimistic UI update
+                el.dataset.state = newState ? 'on' : 'off';
+                el.style.background = newState ? '#10B981' : '#E5E7EB';
+                circle.style.transform = newState ? 'translateX(22px)' : 'translateX(2px)';
+                
+                try {
+                    let val = newState;
+                    if (key === 'theme') {
+                        val = newState ? 'dark' : 'light';
+                        localStorage.setItem('theme', val);
+                        if (val === 'dark') {
+                            document.body.classList.add('dark-theme');
+                        } else {
+                            document.body.classList.remove('dark-theme');
+                        }
+                    }
+                    await AccountHubService.updatePreferences({ [key]: val });
+                    window.ProfileHubActions.showToast('Preferences saved successfully');
+                } catch (e) {
+                    // Revert on error
+                    el.dataset.state = isCurrentlyOn ? 'on' : 'off';
+                    el.style.background = isCurrentlyOn ? '#10B981' : '#E5E7EB';
+                    circle.style.transform = isCurrentlyOn ? 'translateX(22px)' : 'translateX(2px)';
+                    window.ProfileHubActions.showToast('Failed to save preference');
                 }
-                window.ProfileHubActions.showToast('Preferences saved successfully');
+            },
+            updateProfileField: async (field, value) => {
+                 try {
+                     await AccountHubService.updateProfile({ [field]: value });
+                     window.ProfileHubActions.showToast('Profile updated');
+                 } catch (e) {
+                     window.ProfileHubActions.showToast('Failed to update profile');
+                 }
+            },
+            updatePreferenceField: async (field, value) => {
+                 try {
+                     await AccountHubService.updatePreferences({ [field]: value });
+                     window.ProfileHubActions.showToast('Preference updated');
+                 } catch (e) {
+                     window.ProfileHubActions.showToast('Failed to update preference');
+                 }
+            },
+            markNotifRead: async (id) => {
+                try {
+                    await AccountHubService.markNotificationRead(id);
+                    window.ProfileHubActions.switchTab('notifications');
+                } catch (e) {}
+            },
+            markAllNotifsRead: async () => {
+                try {
+                    await AccountHubService.markAllNotificationsRead();
+                    window.ProfileHubActions.switchTab('notifications');
+                } catch (e) {}
+            },
+            deleteNotif: async (id) => {
+                try {
+                    await AccountHubService.deleteNotification(id);
+                    window.ProfileHubActions.switchTab('notifications');
+                } catch (e) {}
             },
             showToast: (msg) => {
                 const toast = document.createElement('div');
                 toast.innerText = msg;
                 Object.assign(toast.style, {
-                    position: 'fixed',
-                    bottom: '20px',
-                    right: '20px',
-                    background: '#111827',
-                    color: '#FFF',
-                    padding: '12px 24px',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    zIndex: '9999',
-                    opacity: '0',
-                    transition: 'opacity 0.3s ease, transform 0.3s ease',
+                    position: 'fixed', bottom: '20px', right: '20px',
+                    background: '#111827', color: '#FFF', padding: '12px 24px',
+                    borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                    fontSize: '14px', fontWeight: '500', zIndex: '9999',
+                    opacity: '0', transition: 'opacity 0.3s ease, transform 0.3s ease',
                     transform: 'translateY(10px)'
                 });
                 document.body.appendChild(toast);
+                setTimeout(() => { toast.style.opacity = '1'; toast.style.transform = 'translateY(0)'; }, 10);
                 setTimeout(() => {
-                    toast.style.opacity = '1';
-                    toast.style.transform = 'translateY(0)';
-                }, 10);
-                setTimeout(() => {
-                    toast.style.opacity = '0';
-                    toast.style.transform = 'translateY(10px)';
+                    toast.style.opacity = '0'; toast.style.transform = 'translateY(10px)';
                     setTimeout(() => toast.remove(), 300);
                 }, 3000);
             },
             logout: () => {
-                alert('Logging out...');
                 window.location.href = 'index.html';
             }
         };
@@ -92,7 +194,6 @@ export const ProfileSettingsHub = (user = {}) => {
         </li>
     `).join('');
 
-    // Trigger initial render of 'profile' tab after insertion
     setTimeout(() => {
         const contentArea = document.getElementById('profile-hub-content');
         if (contentArea && contentArea.innerHTML.trim() === '') {
@@ -103,7 +204,6 @@ export const ProfileSettingsHub = (user = {}) => {
     return `
         <div style="font-family: 'Inter', system-ui, sans-serif; display: flex; height: calc(100vh - 120px); gap: 32px; animation: fadeIn 0.3s ease;">
             
-            <!-- Left Sidebar Navigation -->
             <div style="width: 260px; flex-shrink: 0; display: flex; flex-direction: column; background: #FFFFFF; border-radius: 16px; border: 1px solid #E5E7EB; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02);">
                 <div style="margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid #F3F4F6;">
                     <div style="font-size: 18px; font-weight: 700; color: #111827; letter-spacing: -0.5px;">Account Hub</div>

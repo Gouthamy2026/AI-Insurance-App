@@ -13,19 +13,22 @@ export const Sidebar = (activeModule, setActiveModule) => {
 
     const navSections = [
         {
+            title: "MAIN MENU",
+            items: [
+                { id: 'home', label: 'Dashboard', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>' }
+            ]
+        },
+        {
             title: "INSURANCE MODULES",
             items: [
-                { id: 'home', label: 'Dashboard Home', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>' },
-                { id: 'claim-outcome', label: 'Claim Outcome Analyzer', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>' },
-                { id: 'care-eligibility-engine', label: 'Care Eligibility Engine', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>' },
-                { id: 'ai-asset-coverage', label: 'AI Asset Coverage Advisor', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polyline points="9 12 11 14 15 10"></polyline></svg>' },
-                { id: 'irdai-compliance-engine', label: 'IRDAI Compliance Compass', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>' }
+                { id: 'claim-assessment', label: 'Claim Assessment', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>' },
+                { id: 'health-coverage-verification', label: 'Health Coverage Verification', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>' }
             ]
         },
         {
             title: "PERSONAL SPACE",
             items: [
-                { id: 'insurance-goals', label: 'Insurance Goal', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>' },
+                { id: 'insurance-goals', label: 'Insurance Goals', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>' },
                 { id: 'insurance-locker', label: 'My Insurance Locker', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>' },
                 { id: 'insurance-journey', label: 'Insurance Journey', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>' }
             ]
@@ -47,9 +50,9 @@ export const Sidebar = (activeModule, setActiveModule) => {
             <li 
                 onclick="handleNavClick('${item.id}')"
                 class="${activeModule === item.id ? 'active' : ''}"
-                style="display: flex; align-items: center; gap: 12px; padding: 12px 15px; margin-bottom: 4px; border-radius: 8px; cursor: pointer; transition: all 0.2s; color: #111827;"
+                style="display: flex; align-items: center; gap: 12px; padding: 12px 15px; margin-bottom: 4px; border-radius: 8px; cursor: pointer; transition: all 0.2s;"
             >
-                ${item.icon} <span style="font-size: 15px; font-weight: 600;">${item.label}</span>
+                ${item.icon} <span style="font-size: 14px; font-weight: 500;">${item.label}</span>
             </li>
         `).join('')}
     `).join('');
