@@ -12,6 +12,8 @@ import { DashboardService } from './services/dashboardApi.js';
 import { ClaimAssessmentReportCenter } from './pages/ClaimAssessmentReportCenter.js';
 import { HealthCoverageVerificationHub } from './pages/HealthCoverageVerificationHub.js?v=3';
 
+import { IrdaiComplianceChecker } from './pages/IrdaiComplianceChecker.js';
+
 document.addEventListener('DOMContentLoaded', () => {
 
     // Auth Check
@@ -62,6 +64,9 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (state.activeModule === 'health-coverage-verification') {
             dashboardRoot.innerHTML = HealthCoverageVerificationHub();
             if (window.initHealthCoverageVerificationHub) window.initHealthCoverageVerificationHub();
+        } else if (state.activeModule === 'irdai-compliance-checker') {
+            dashboardRoot.innerHTML = IrdaiComplianceChecker();
+            if (window.initIrdaiComplianceChecker) window.initIrdaiComplianceChecker();
         } else {
             dashboardRoot.innerHTML = ModulePlaceholder({ moduleId: state.activeModule });
         }
