@@ -38,6 +38,8 @@ from backend.api import assessment
 app.include_router(assessment.router)
 from backend.api import health_verification
 app.include_router(health_verification.router)
+from backend.api import health_verification_hub_api
+app.include_router(health_verification_hub_api.router)
 
 from fastapi.staticfiles import StaticFiles
 import os

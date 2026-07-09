@@ -10,7 +10,7 @@ import { AiAssistant } from './pages/AiAssistant.js';
 import { ModulePlaceholder } from './pages/ModulePlaceholder.js';
 import { DashboardService } from './services/dashboardApi.js';
 import { ClaimAssessmentReportCenter } from './pages/ClaimAssessmentReportCenter.js';
-import { HealthCoverageVerificationHub } from './pages/HealthCoverageVerificationHub.js';
+import { HealthCoverageVerificationHub } from './pages/HealthCoverageVerificationHub.js?v=3';
 
 document.addEventListener('DOMContentLoaded', () => {
 
