@@ -40,6 +40,8 @@ from backend.api import health_verification
 app.include_router(health_verification.router)
 from backend.api import health_verification_hub_api
 app.include_router(health_verification_hub_api.router)
+from backend.api import irdai_compliance
+app.include_router(irdai_compliance.router)
 
 from fastapi.staticfiles import StaticFiles
 import os
