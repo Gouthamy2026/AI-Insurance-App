@@ -68,7 +68,7 @@ export const InsuranceLocker = () => {
              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 12px; color: #111827;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
              <p style="margin: 0; font-size: 18px; font-weight: 600; color: #111827;">No policies found in your locker.</p>
              <p style="margin: 4px 0 0 0; font-size: 15px; color: #111827;">Upload your first policy document above.</p>
-           </td></tr>`give
+           </td></tr>`
             : policies.map(p => `
             <tr class="policy-row" style="border-bottom: 1px solid #E5E7EB; transition: background 0.2s;" onmouseover="this.style.background='#F9FAFB'" onmouseout="this.style.background='white'">
                 <td style="padding: 16px; font-size: 16px; font-weight: 700; color: #111827; display: flex; align-items: center; gap: 8px;">

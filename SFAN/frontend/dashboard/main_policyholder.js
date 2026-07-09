@@ -4,7 +4,7 @@ import { Topbar } from './layouts/Topbar.js';
 import { Home } from './pages/Home.js';
 import { ProfileSettingsHub } from './pages/ProfileSettingsHub.js';
 import { InsuranceGoals } from './pages/InsuranceGoals.js';
-import { InsuranceLocker } from './pages/InsuranceLocker.js';
+import { InsuranceLocker } from './pages/InsuranceLocker.js?v=2';
 import { InsuranceJourney } from './pages/InsuranceJourney.js';
 import { AiAssistant } from './pages/AiAssistant.js';
 import { ModulePlaceholder } from './pages/ModulePlaceholder.js';

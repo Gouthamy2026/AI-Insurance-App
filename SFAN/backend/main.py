@@ -39,9 +39,12 @@ app.include_router(assessment.router)
 from backend.api import health_verification
 app.include_router(health_verification.router)
 
-@app.get("/")
-def read_root():
-    return {"message": "Welcome to SFAN API"}
+from fastapi.staticfiles import StaticFiles
+import os
+
+frontend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend"))
+if os.path.exists(frontend_path):
+    app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
 
 import time
 from backend.services.pinecone_service import get_pinecone_client, get_namespaces
