@@ -535,19 +535,54 @@ function renderNotificationsTab(notifications) {
 }
 
 function renderActivityTab(activities) {
+    const history = JSON.parse(localStorage.getItem('sfan_ai_history') || '[]');
+    let allActivity = [];
+    
+    // Add AI history
+    if (history.length > 0) {
+        history.forEach(item => {
+            allActivity.push({
+                type: 'ai',
+                description: 'AI Assistant Interaction',
+                detail: `You asked: "${item.user || 'Query'}"`,
+                created_at: item.timestamp || new Date().toISOString()
+            });
+        });
+    }
+    
+    // Add backend activity
+    if (activities && activities.length > 0) {
+        activities.forEach(item => {
+            allActivity.push({
+                type: 'system',
+                description: item.description || 'System Event',
+                detail: 'Authenticated action recorded.',
+                created_at: item.created_at
+            });
+        });
+    }
+    
+    // Sort combined activity by date descending
+    allActivity.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    
     let html = '<div style="color: #64748B; font-size: 15px;">No recent activity found on this account.</div>';
     
-    if (activities && activities.length > 0) {
-        html = activities.map((item, idx) => {
+    if (allActivity.length > 0) {
+        // Take top 20
+        html = allActivity.slice(0, 20).map((item, idx) => {
             const isFirst = idx === 0;
+            const isAI = item.type === 'ai';
+            const iconColor = isFirst ? '#2563EB' : (isAI ? '#10B981' : '#94A3B8');
+            const shadowColor = isFirst ? '#DBEAFE' : (isAI ? '#D1FAE5' : '#F1F5F9');
+            
             return `
-            <div style="position: relative; padding-bottom: ${idx === activities.length - 1 ? '0' : '32px'};">
-                ${idx !== activities.length - 1 ? '<div style="position: absolute; left: 7px; top: 20px; bottom: 0; width: 2px; background: #E2E8F0;"></div>' : ''}
-                <div style="position: absolute; left: 0; top: 0; width: 16px; height: 16px; border-radius: 50%; background: ${isFirst ? '#2563EB' : '#94A3B8'}; border: 3px solid white; box-shadow: 0 0 0 2px ${isFirst ? '#DBEAFE' : '#F1F5F9'};"></div>
+            <div style="position: relative; padding-bottom: ${idx === allActivity.length - 1 ? '0' : '32px'};">
+                ${idx !== allActivity.length - 1 ? '<div style="position: absolute; left: 7px; top: 20px; bottom: 0; width: 2px; background: #E2E8F0;"></div>' : ''}
+                <div style="position: absolute; left: 0; top: 0; width: 16px; height: 16px; border-radius: 50%; background: ${iconColor}; border: 3px solid white; box-shadow: 0 0 0 2px ${shadowColor};"></div>
                 <div style="padding-left: 32px; padding-top: -2px;">
                     <div style="font-size: 13px; font-weight: 700; color: #64748B; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">${formatRelativeDate(item.created_at)}</div>
-                    <div style="font-size: 16px; font-weight: 700; color: #0F172A; margin-bottom: 4px;">${item.description || 'System Event'}</div>
-                    <div style="font-size: 14px; color: #475569;">Authenticated action recorded.</div>
+                    <div style="font-size: 16px; font-weight: 700; color: #0F172A; margin-bottom: 4px;">${item.description}</div>
+                    <div style="font-size: 14px; color: #475569;">${item.detail}</div>
                 </div>
             </div>
             `;
