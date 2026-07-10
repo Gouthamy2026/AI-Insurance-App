@@ -100,7 +100,7 @@ export const HealthCoverageVerificationHub = () => {
                     </div>
 
                     <div style="display: flex; flex-direction: column; margin-bottom: 15px; grid-column: span 2; margin-top: 20px;">
-                        <button type="button" id="verifyBtn" disabled style="background: #8b5cf6; color: white; font-size: 16px; font-weight: 600; padding: 14px 28px; border: none; border-radius: 8px; cursor: pointer; width: 100%; transition: background 0.2s ease;" onmouseover="if(!this.disabled) this.style.background='#7c3aed'" onmouseout="if(!this.disabled) this.style.background='#8b5cf6'">Verify Health Coverage</button>
+                        <button type="button" id="verifyBtn" style="background: #8b5cf6; color: white; font-size: 16px; font-weight: 600; padding: 14px 28px; border: none; border-radius: 8px; cursor: pointer; width: 100%; transition: background 0.2s ease;" onmouseover="this.style.background='#7c3aed'" onmouseout="this.style.background='#8b5cf6'">Verify Health Coverage</button>
                     </div>
                 </form>
             </div>
@@ -285,48 +285,34 @@ window.initHealthCoverageVerificationHub = () => {
     };
 
     // Inline Validation
-    const validateForm = () => {
+    const validateForm = (showErrors = false) => {
         let isValid = true;
         for (const key in inputs) {
             const val = inputs[key].value.trim();
             if (key === 'scenarioDescription') {
                 if (val.length > 0 && val.length < 10) {
                     isValid = false;
-                    errors[key].style.display = 'block';
+                    if (showErrors) errors[key].style.display = 'block';
                 } else {
                     errors[key].style.display = 'none';
                 }
             } else {
                 if (!val) {
                     isValid = false;
-                    errors[key].style.display = 'none'; // Only show on blur/interaction
+                    if (showErrors) errors[key].style.display = 'block';
                 } else {
                     errors[key].style.display = 'none';
                 }
             }
         }
         
-        verifyBtn.disabled = !isValid;
-        if (isValid) {
-            verifyBtn.style.background = '#8b5cf6';
-            verifyBtn.style.cursor = 'pointer';
-        } else {
-            verifyBtn.style.background = '#9ca3af';
-            verifyBtn.style.cursor = 'not-allowed';
-        }
-        
         return isValid;
     };
 
     for (const key in inputs) {
-        inputs[key].addEventListener('input', validateForm);
+        inputs[key].addEventListener('input', () => validateForm(true));
         inputs[key].addEventListener('blur', () => {
-            const val = inputs[key].value.trim();
-            if (key === 'scenarioDescription') {
-                if (val.length > 0 && val.length < 10) errors[key].style.display = 'block';
-            } else {
-                if (!val) errors[key].style.display = 'block';
-            }
+            validateForm(true);
         });
     }
 
@@ -474,7 +460,15 @@ ${data["Final Eligibility Assessment"] || "No information provided."}
     verifyBtn.addEventListener('click', async (event) => {
         event.preventDefault();
         
-        if (!validateForm()) return;
+        // Show errors on click if form is invalid
+        if (!validateForm(true)) {
+            // Scroll to the first error
+            const firstError = document.querySelector('div[id^="error-"][style*="display: block"]');
+            if (firstError) {
+                firstError.parentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            return;
+        }
 
         // UI State Update
         verifyBtn.disabled = true;
@@ -545,6 +539,6 @@ ${data["Final Eligibility Assessment"] || "No information provided."}
         }
     });
     
-    // Initial validation state
-    validateForm();
+    // Initial validation state (don't show errors yet)
+    validateForm(false);
 };
