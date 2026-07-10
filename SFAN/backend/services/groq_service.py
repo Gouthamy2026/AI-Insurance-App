@@ -5,6 +5,13 @@ from backend.core.config import settings
 
 logger = logging.getLogger(__name__)
 
+GLOBAL_PLATFORM_RULE = """
+GLOBAL PLATFORM RULE:
+This Insurance Intelligence Platform is built for Indian insurance customers.
+All financial outputs, coverage amounts, claim estimates, premiums, benefits, and policy limits must be displayed in Indian Rupees (₹).
+Never generate monetary values in USD ($) unless explicitly requested by the user.
+"""
+
 def get_groq_client():
     if not settings.GROQ_API_KEY:
         raise HTTPException(status_code=500, detail="Missing configuration: GROQ_API_KEY is not set in the environment variables.")
@@ -13,11 +20,13 @@ def get_groq_client():
 def generate_completion(prompt: str, system_prompt: str = "You are an Insurance Intelligence API.", model: str = "llama-3.1-8b-instant"):
     client = get_groq_client()
     
+    final_system_prompt = f"{system_prompt}\n\n{GLOBAL_PLATFORM_RULE}"
+    
     response = client.chat.completions.create(
         messages=[
             {
                 "role": "system",
-                "content": system_prompt,
+                "content": final_system_prompt,
             },
             {
                 "role": "user",
@@ -76,6 +85,8 @@ DO NOT ASSUME RELATIONSHIPS. Verify from document evidence only.
 def analyze_vision(prompt: str, image_base64: str, system_prompt: str = "You are an AI Vision Assistant.", model: str = "llama-3.2-11b-vision-preview"):
     client = get_groq_client()
     
+    final_system_prompt = f"{system_prompt}\n\n{GLOBAL_PLATFORM_RULE}"
+    
     try:
         logger.info(f"Vision Model Request: model={model}, base64_size={len(image_base64)}")
         response = client.chat.completions.create(
@@ -83,7 +94,7 @@ def analyze_vision(prompt: str, image_base64: str, system_prompt: str = "You are
                 {
                     "role": "user",
                     "content": [
-                        {"type": "text", "text": f"{system_prompt}\n\n{prompt}"},
+                        {"type": "text", "text": f"{final_system_prompt}\n\n{prompt}"},
                         {
                             "type": "image_url",
                             "image_url": {
