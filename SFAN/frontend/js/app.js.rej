@@ -1,0 +1,7 @@
+diff a/SFAN/frontend/js/app.js b/SFAN/frontend/js/app.js	(rejected hunks)
+@@ -1,4 +1,4 @@
+-∩╗┐document.addEventListener('DOMContentLoaded', () => {
++document.addEventListener('DOMContentLoaded', () => {
+     const loginForm = document.getElementById('loginForm');
+     if (loginForm) {
+         if (localStorage.getItem('rememberedEmail')) {

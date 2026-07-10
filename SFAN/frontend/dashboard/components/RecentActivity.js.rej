@@ -1,0 +1,38 @@
+diff a/SFAN/frontend/dashboard/components/RecentActivity.js b/SFAN/frontend/dashboard/components/RecentActivity.js	(rejected hunks)
+@@ -1,7 +1,26 @@
++function formatRelativeDate(dateString) {
++    if (!dateString || dateString === 'Just now' || dateString === 'Recently') return dateString;
++    const date = new Date(dateString);
++    if (isNaN(date.getTime())) return dateString;
++    
++    const now = new Date();
++    const dateDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
++    const nowDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
++    
++    const diffDays = Math.round((nowDay - dateDay) / (1000 * 60 * 60 * 24));
++    const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
++    
++    if (diffDays === 0) return `Today, ${timeStr}`;
++    if (diffDays === 1) return `Yesterday, ${timeStr}`;
++    
++    const dateStr = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
++    return `${dateStr}, ${timeStr}`;
++}
++
+ export const RecentActivity = (dynamicData = null) => {
+     
+     const activities = dynamicData && dynamicData.length > 0 ? dynamicData : [
+-        { title: "Welcome", timestamp: "Just now", icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>` }
++        { title: "Welcome", timestamp: "Just now", created_at: "Just now", icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>` }
+     ];
+ 
+     const listHtml = activities.map(act => `
+@@ -14,7 +33,7 @@ export const RecentActivity = (dynamicData = null) => {
+                 <div style="color: #6B7280; font-size: 13px;">${act.title.split(':')[1] || act.title}</div>
+             </div>
+             <div style="color: #9CA3AF; font-size: 12px; font-weight: 500;">
+-                ${act.timestamp}
++                ${formatRelativeDate(act.created_at || act.timestamp)}
+             </div>
+         </div>
+     `).join('');

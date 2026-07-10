@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Runner</title>
+</head>
+<body>
+    <script>
+        window.addEventListener('error', function(event) {
+            fetch('http://localhost:8000/log?msg=' + encodeURIComponent(event.message + ' at ' + event.filename + ':' + event.lineno));
+        });
+        window.addEventListener('unhandledrejection', function(event) {
+            fetch('http://localhost:8000/log?msg=' + encodeURIComponent(event.reason));
+        });
+    </script>
+    <iframe src="dashboard_broker.html"></iframe>
+</body>
+</html>

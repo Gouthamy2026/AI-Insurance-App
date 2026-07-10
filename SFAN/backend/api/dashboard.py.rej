@@ -1,0 +1,105 @@
+diff a/SFAN/backend/api/dashboard.py b/SFAN/backend/api/dashboard.py	(rejected hunks)
+@@ -5,7 +5,8 @@ import datetime
+ import calendar
+ 
+ from backend.database.config import get_db
+-from backend.models.document import Document
++from backend.models.document import Document, Namespace
++from backend.models.account_hub import ActivityLog
+ from backend.api.deps import get_current_active_user
+ 
+ router = APIRouter(prefix="/dashboard", tags=["dashboard"])
+@@ -64,6 +65,12 @@ def get_dashboard_stats(db: Session = Depends(get_db), current_user = Depends(ge
+         except Exception:
+             pass
+             
++    pinecone_docs_count = 0
++    if pinecone_namespaces:
++        pinecone_docs_count = db.query(Document).filter(Document.namespace.in_(pinecone_namespaces)).count()
++    else:
++        pinecone_docs_count = indexed_docs
++            
+     # Reminders based on actual state
+     reminders = []
+     if docs_count == 0:
+@@ -76,15 +83,25 @@ def get_dashboard_stats(db: Session = Depends(get_db), current_user = Depends(ge
+     if profile_completion < 100:
+         reminders.append({"title": "Complete your profile", "status": "Pending"})
+ 
+-    # Get recent 3 documents for activity feed
+-    recent_docs = db.query(Document).order_by(desc(Document.created_at)).limit(3).all()
++    # Get recent 3 activities for activity feed
++    recent_logs = db.query(ActivityLog).filter(ActivityLog.user_id == current_user.id).order_by(desc(ActivityLog.created_at)).limit(3).all()
+     recent_activity = []
+-    for doc in recent_docs:
++    for log in recent_logs:
++        # Generate appropriate icon based on description
++        desc_lower = log.description.lower()
++        icon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>'
++        if 'claim' in desc_lower:
++            icon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/><path d="M14 3v5h5M16 13H8M16 17H8M10 9H8"/></svg>'
++        elif 'care' in desc_lower or 'eligibility' in desc_lower:
++            icon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>'
++        elif 'profile' in desc_lower or 'preference' in desc_lower:
++            icon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'
++            
+         recent_activity.append({
+-            "title": f"Policy Uploaded: {doc.filename}",
+-            "timestamp": doc.created_at.strftime("%b %d, %Y") if doc.created_at else "Recently",
+-            "icon": '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>',
+-            "onClickId": 'insurance-locker'
++            "title": log.description,
++            "created_at": log.created_at.isoformat() + "Z" if log.created_at else None,
++            "icon": icon,
++            "onClickId": 'activity-history'
+         })
+         
+     if not recent_activity:
+@@ -95,35 +112,31 @@ def get_dashboard_stats(db: Session = Depends(get_db), current_user = Depends(ge
+             "onClickId": 'activity-history'
+         })
+ 
+-    # Policy Overview (Use Namespace query usage counts so it reflects how much each policy is queried by AI modules)
+-    from backend.models.document import Namespace
+-    namespaces_db = db.query(Namespace).all()
+-    ns_usage_map = {ns.name: ns.usage_count or 0 for ns in namespaces_db}
+-    
+     policy_overview = []
+     
+     if pinecone_namespaces:
+         for ns in pinecone_namespaces:
+-            count_val = ns_usage_map.get(ns, 0)
+-            # If a namespace exists but has 0 usage, give it a tiny base or just keep 0
+-            if count_val == 0 and db.query(Document).filter(Document.namespace == ns).first():
+-                count_val = (len(ns) * 3) % 15 + 2 # fallback small number
++            ns_obj = db.query(Namespace).filter(Namespace.name == ns).first()
++            actual_count = ns_obj.usage_count if ns_obj else 0
+             policy_overview.append({
+                 "label": ns.replace("_", " ").title(),
+-                "count": count_val
++                "count": actual_count
+             })
+     else:
+         # Fallback if no namespaces are configured
+-        for ns, count in ns_usage_map.items():
+-            count_val = count or ((len(str(ns)) * 3) % 15 + 2)
+-            policy_overview.append({
+-                "label": ns.replace("_", " ").title() if ns else "Unknown",
+-                "count": count_val
+-            })
++        distinct_namespaces = db.query(Namespace).all()
++        for ns_obj in distinct_namespaces:
++            if ns_obj.name:
++                policy_overview.append({
++                    "label": ns_obj.name.replace("_", " ").title(),
++                    "count": ns_obj.usage_count or 0
++                })
+ 
+     return {
+         "readiness_score": readiness_score,
+         "docs_count": docs_count,
++        "pinecone_docs_count": pinecone_docs_count,
++        "pinecone_namespaces_count": len(pinecone_namespaces),
+         "insights_count": insights_count,
+         "profile_completion": profile_completion,
+         "usage_trend": usage_trend,

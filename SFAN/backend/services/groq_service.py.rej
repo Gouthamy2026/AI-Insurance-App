@@ -1,0 +1,89 @@
+diff a/SFAN/backend/services/groq_service.py b/SFAN/backend/services/groq_service.py	(rejected hunks)
+@@ -1,7 +1,10 @@
++import logging
+ from fastapi import HTTPException
+ from groq import Groq
+ from backend.core.config import settings
+ 
++logger = logging.getLogger(__name__)
++
+ def get_groq_client():
+     if not settings.GROQ_API_KEY:
+         raise HTTPException(status_code=500, detail="Missing configuration: GROQ_API_KEY is not set in the environment variables.")
+@@ -23,13 +26,17 @@ def generate_completion(prompt: str, system_prompt: str = "You are an Insurance
+         ],
+         model=model,
+     )
+-    return response.choices[0].message.content
++    result = response.choices[0].message.content
++    logger.info(f"Groq response generated. Final response returned (Length: {len(result)})")
++    return result
+ 
+-def analyze_policy(query: str, context: str, model: str = "llama-3.1-8b-instant"):
+-    if not context:
+-        return "Information not found in the provided policy documents."
++def analyze_policy(query: str, context: str, model: str = "llama-3.1-8b-instant", system_prompt: str = None):
++    # Ensure context is at least an empty string to avoid NoneType errors
++    if context is None:
++        context = ""
+     
+-    system_prompt = """# INSURANCE PROVIDER VERIFICATION ENGINE & COMPLIANCE ANALYST
++    if system_prompt is None:
++        system_prompt = """# INSURANCE PROVIDER VERIFICATION ENGINE & COMPLIANCE ANALYST
+ 
+ You are a strict compliance and policy analyst. Your task is to evaluate bank policy scenarios and identify the ACTUAL insurance company associated with a bank policy document based ONLY on the provided context.
+ 
+@@ -50,7 +57,7 @@ DO NOT ASSUME RELATIONSHIPS. Verify from document evidence only.
+ 
+ ## STRICT INSTRUCTIONS
+ 1. Base your answer strictly and exclusively on the text within the <context> tags.
+-2. If the <context> does not contain the information needed to verify the scenario, you must output exactly: "Information not found in the provided policy documents."
++2. If the <context> is empty or does not contain the information needed to verify the scenario, you MUST still output the required JSON format but state 'Not Found', 'Unknown', or 0 for the missing values.
+ 3. Do not invent, infer, or hallucinate bank names, insurance providers, or coverage amounts.
+ 4. If no insurer evidence exists in the text, you must output "Unknown" or "NOT VERIFIED" for the insurer. Never guess based on the bank name.
+ 5. ALWAYS respect the final output JSON format requested by the user prompt."""
+@@ -69,21 +76,27 @@ DO NOT ASSUME RELATIONSHIPS. Verify from document evidence only.
+ def analyze_vision(prompt: str, image_base64: str, system_prompt: str = "You are an AI Vision Assistant.", model: str = "llama-3.2-11b-vision-preview"):
+     client = get_groq_client()
+     
+-    response = client.chat.completions.create(
+-        messages=[
+-            {
+-                "role": "user",
+-                "content": [
+-                    {"type": "text", "text": f"{system_prompt}\n\n{prompt}"},
+-                    {
+-                        "type": "image_url",
+-                        "image_url": {
+-                            "url": image_base64,
++    try:
++        logger.info(f"Vision Model Request: model={model}, base64_size={len(image_base64)}")
++        response = client.chat.completions.create(
++            messages=[
++                {
++                    "role": "user",
++                    "content": [
++                        {"type": "text", "text": f"{system_prompt}\n\n{prompt}"},
++                        {
++                            "type": "image_url",
++                            "image_url": {
++                                "url": image_base64,
++                            }
+                         }
+-                    }
+-                ]
+-            }
+-        ],
+-        model=model,
+-    )
+-    return response.choices[0].message.content
++                    ]
++                }
++            ],
++            model=model,
++        )
++        logger.info("Vision Model Response: Success")
++        return response.choices[0].message.content
++    except Exception as e:
++        logger.error(f"Vision Model Request Failed: {e}", exc_info=True)
++        raise

@@ -1,0 +1,111 @@
+diff a/SFAN/backend/main.py b/SFAN/backend/main.py	(rejected hunks)
+@@ -1,7 +1,10 @@
+ from fastapi import FastAPI
+ from fastapi.middleware.cors import CORSMiddleware
+ from backend.database.config import engine, Base
+-from backend.api import auth, documents, namespaces, intelligence
++from backend.api import auth, documents, namespaces, intelligence, account_hub
++from backend.models import account_hub as _account_hub_models
++from backend.models import user as _user_models
++from backend.models import document as _document_models
+ from backend.seed_admin import seed_admin
+ 
+ # Create all database tables
+@@ -19,7 +22,7 @@ app = FastAPI(
+ app.add_middleware(
+     CORSMiddleware,
+     allow_origins=["*"],
+-    allow_credentials=True,
++    allow_credentials=False,
+     allow_methods=["*"],
+     allow_headers=["*"],
+ )
+@@ -28,9 +31,88 @@ app.include_router(auth.router)
+ app.include_router(documents.router)
+ app.include_router(namespaces.router)
+ app.include_router(intelligence.router)
++app.include_router(account_hub.router)
+ from backend.api import dashboard
+ app.include_router(dashboard.router)
+ 
+ @app.get("/")
+ def read_root():
+     return {"message": "Welcome to SFAN API"}
++
++import time
++from backend.services.pinecone_service import get_pinecone_client, get_namespaces
++from backend.services.groq_service import generate_completion
++from backend.services.embedding_service import get_embedding
++
++@app.get("/health")
++def health_check():
++    return {
++        "status": "ok",
++        "response_time": "0ms",
++        "error_details": None,
++        "connection_state": "connected"
++    }
++
++@app.get("/health/pinecone")
++def health_pinecone():
++    start_time = time.time()
++    try:
++        get_namespaces()
++        elapsed = int((time.time() - start_time) * 1000)
++        return {
++            "status": "ok",
++            "response_time": f"{elapsed}ms",
++            "error_details": None,
++            "connection_state": "connected"
++        }
++    except Exception as e:
++        elapsed = int((time.time() - start_time) * 1000)
++        return {
++            "status": "error",
++            "response_time": f"{elapsed}ms",
++            "error_details": str(e),
++            "connection_state": "disconnected"
++        }
++
++@app.get("/health/groq")
++def health_groq():
++    start_time = time.time()
++    try:
++        # A tiny prompt to test connectivity
++        generate_completion("Hello", model="llama-3.1-8b-instant")
++        elapsed = int((time.time() - start_time) * 1000)
++        return {
++            "status": "ok",
++            "response_time": f"{elapsed}ms",
++            "error_details": None,
++            "connection_state": "connected"
++        }
++    except Exception as e:
++        elapsed = int((time.time() - start_time) * 1000)
++        return {
++            "status": "error",
++            "response_time": f"{elapsed}ms",
++            "error_details": str(e),
++            "connection_state": "disconnected"
++        }
++
++@app.get("/health/embeddings")
++def health_embeddings():
++    start_time = time.time()
++    try:
++        get_embedding("test")
++        elapsed = int((time.time() - start_time) * 1000)
++        return {
++            "status": "ok",
++            "response_time": f"{elapsed}ms",
++            "error_details": None,
++            "connection_state": "connected"
++        }
++    except Exception as e:
++        elapsed = int((time.time() - start_time) * 1000)
++        return {
++            "status": "error",
++            "response_time": f"{elapsed}ms",
++            "error_details": str(e),
++            "connection_state": "disconnected"
++        }
