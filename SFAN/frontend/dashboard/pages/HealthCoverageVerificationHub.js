@@ -93,9 +93,9 @@ export const HealthCoverageVerificationHub = () => {
                         </div>
 
                         <div style="display: flex; flex-direction: column; margin-bottom: 15px; grid-column: span 2;">
-                            <label style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #000000;" for="scenarioDescription">Scenario Description *</label>
-                            <textarea id="scenarioDescription" style="color: #000000; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px; font-family: inherit; transition: all 0.2s ease; outline: none;" rows="3" placeholder="Describe the medical scenario in detail..." required onfocus="this.style.borderColor='#2563eb'; this.style.boxShadow='0 0 0 3px rgba(37, 99, 235, 0.1)'" onblur="this.style.borderColor='#d1d5db'; this.style.boxShadow='none'"></textarea>
-                            <div style="color: #ef4444; font-size: 13px; margin-top: 5px; display: none;" id="error-scenarioDescription">Scenario Description is required (min 10 chars).</div>
+                            <label style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #000000;" for="scenarioDescription">Additional Context (Optional)</label>
+                            <textarea id="scenarioDescription" style="color: #000000; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px; font-family: inherit; transition: all 0.2s ease; outline: none;" rows="3" placeholder="Describe the medical scenario in detail..." onfocus="this.style.borderColor='#2563eb'; this.style.boxShadow='0 0 0 3px rgba(37, 99, 235, 0.1)'" onblur="this.style.borderColor='#d1d5db'; this.style.boxShadow='none'"></textarea>
+                            <div style="color: #ef4444; font-size: 13px; margin-top: 5px; display: none;" id="error-scenarioDescription">Scenario Description must be at least 10 chars if provided.</div>
                         </div>
                     </div>
 
@@ -289,11 +289,20 @@ window.initHealthCoverageVerificationHub = () => {
         let isValid = true;
         for (const key in inputs) {
             const val = inputs[key].value.trim();
-            if (!val || (key === 'scenarioDescription' && val.length < 10)) {
-                isValid = false;
-                errors[key].style.display = inputs[key].value.length > 0 ? 'block' : 'none';
+            if (key === 'scenarioDescription') {
+                if (val.length > 0 && val.length < 10) {
+                    isValid = false;
+                    errors[key].style.display = 'block';
+                } else {
+                    errors[key].style.display = 'none';
+                }
             } else {
-                errors[key].style.display = 'none';
+                if (!val) {
+                    isValid = false;
+                    errors[key].style.display = 'none'; // Only show on blur/interaction
+                } else {
+                    errors[key].style.display = 'none';
+                }
             }
         }
         
@@ -313,19 +322,21 @@ window.initHealthCoverageVerificationHub = () => {
         inputs[key].addEventListener('input', validateForm);
         inputs[key].addEventListener('blur', () => {
             const val = inputs[key].value.trim();
-            if (!val || (key === 'scenarioDescription' && val.length < 10)) {
-                errors[key].style.display = 'block';
+            if (key === 'scenarioDescription') {
+                if (val.length > 0 && val.length < 10) errors[key].style.display = 'block';
+            } else {
+                if (!val) errors[key].style.display = 'block';
             }
         });
     }
 
     const stages = [
         "Generating Embeddings...",
-        "Searching Health Policy...",
-        "Retrieving Coverage Rules...",
-        "Checking Waiting Periods...",
-        "Analyzing Eligibility...",
-        "Generating Verification Report...",
+        "Searching Pinecone...",
+        "Retrieving Policy Evidence...",
+        "Validating Context...",
+        "Analyzing Coverage...",
+        "Generating Report...",
         "Rendering Results..."
     ];
 
@@ -362,27 +373,43 @@ window.initHealthCoverageVerificationHub = () => {
         currentReportContent = `
 # Health Coverage Verification Report
 
-## Coverage Status
-${data["Coverage Status"] || "No information provided."}
+## Health Scenario Summary
+${data["Health Scenario Summary"] || "No information provided."}
 
-## Relevant Evidence
-${data["Relevant Evidence"] || "No information provided."}
+## Coverage Assessment
+${data["Coverage Assessment"] || "No information provided."}
+
+## Relevant Policy Evidence
+${data["Relevant Policy Evidence"] || "No information provided."}
 
 ## Waiting Period Analysis
 ${data["Waiting Period Analysis"] || "No information provided."}
 
-## Exclusions
-${data["Exclusions"] || "No information provided."}
+## Coverage Exclusions & Limitations
+${data["Coverage Exclusions & Limitations"] || "No information provided."}
+
+## Coverage Risk Factors
+${data["Coverage Risk Factors"] || "No information provided."}
+
+## Documentation Requirements
+${data["Documentation Requirements"] || "No information provided."}
+
+## Coverage Recommendations
+${data["Coverage Recommendations"] || "No information provided."}
 
 ## Final Eligibility Assessment
 ${data["Final Eligibility Assessment"] || "No information provided."}
         `.trim();
 
         let htmlContent = `
-            ${createSection("Coverage Status", data["Coverage Status"], checkIcon)}
-            ${createSection("Relevant Evidence", data["Relevant Evidence"], fileIcon)}
+            ${createSection("Health Scenario Summary", data["Health Scenario Summary"], fileIcon)}
+            ${createSection("Coverage Assessment", data["Coverage Assessment"], checkIcon)}
+            ${createSection("Relevant Policy Evidence", data["Relevant Policy Evidence"], fileIcon)}
             ${createSection("Waiting Period Analysis", data["Waiting Period Analysis"], clockIcon)}
-            ${createSection("Exclusions", data["Exclusions"], alertIcon)}
+            ${createSection("Coverage Exclusions & Limitations", data["Coverage Exclusions & Limitations"], alertIcon)}
+            ${createSection("Coverage Risk Factors", data["Coverage Risk Factors"], alertIcon)}
+            ${createSection("Documentation Requirements", data["Documentation Requirements"], fileIcon)}
+            ${createSection("Coverage Recommendations", data["Coverage Recommendations"], starIcon)}
             ${createSection("Final Eligibility Assessment", data["Final Eligibility Assessment"], starIcon)}
         `;
 
@@ -500,7 +527,18 @@ ${data["Final Eligibility Assessment"] || "No information provided."}
             clearInterval(stageInterval);
             loadingState.style.display = 'none';
             document.getElementById('formContainer').style.display = 'block';
-            alert(`Verification Failed: ${error.message}`);
+            
+            // Render error beautifully instead of alert
+            const errorDiv = document.createElement('div');
+            errorDiv.style.cssText = "background: #FEE2E2; border-left: 4px solid #EF4444; color: #991B1B; padding: 16px; border-radius: 8px; margin-bottom: 24px; font-weight: 500; font-size: 15px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); animation: fadeIn 0.4s ease;";
+            errorDiv.innerHTML = `<strong style="display: flex; align-items: center; gap: 8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg> Verification Failed</strong><p style="margin: 8px 0 0 0;">${error.message}</p>`;
+            
+            const formContainer = document.getElementById('formContainer');
+            // Remove old error if exists
+            const oldError = formContainer.querySelector('.api-error-alert');
+            if (oldError) oldError.remove();
+            errorDiv.classList.add('api-error-alert');
+            formContainer.insertBefore(errorDiv, formContainer.firstChild);
         } finally {
             verifyBtn.disabled = false;
             verifyBtn.style.background = '#8b5cf6';
