@@ -196,15 +196,6 @@ export const IrdaiComplianceChecker = () => {
                 </div>
                 <div>
                     <h3 style="font-size: 22px; font-weight: 800; background: linear-gradient(135deg, #8b5cf6, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; letter-spacing: -0.02em;">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="url(#premiumGradient)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <defs>
-                                <linearGradient id="premiumGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                    <stop offset="0%" stop-color="#8b5cf6" />
-                                    <stop offset="100%" stop-color="#ec4899" />
-                                </linearGradient>
-                            </defs>
-                            <path d="M12 2v20"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                        </svg>
                         AI Analyser
                     </h3>
                     <p id="irdai-out-response" style="white-space: pre-wrap; line-height: 1.8; color: #1E293B; font-size: 16px; margin: 0; padding: 24px; background: #FFFFFF; border-radius: 12px; box-shadow: 0 10px 30px rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.2);"></p>
