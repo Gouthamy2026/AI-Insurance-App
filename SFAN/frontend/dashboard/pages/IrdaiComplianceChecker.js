@@ -109,7 +109,7 @@ export const IrdaiComplianceChecker = () => {
     };
 
     return `
-        <div style="font-family: 'Inter', system-ui, sans-serif; animation: fadeIn 0.4s ease; max-width: 1100px; margin: 0 auto; padding-bottom: 60px;">
+        <div style="font-family: 'Inter', system-ui, sans-serif; animation: fadeIn 0.4s ease; padding-bottom: 60px;">
             <style>
                 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
                 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -139,7 +139,7 @@ export const IrdaiComplianceChecker = () => {
 
         <div class="header-section" style="margin-bottom: 30px;">
             <h1 style="font-size: 28px; font-weight: 800; color: #1F2937; letter-spacing: -0.02em; margin-bottom: 8px; display: flex; align-items: center; gap: 12px;">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="M9 12l2 2 4-4"></path></svg>
                 IRDAI Compliance & Consumer Protection Hub
             </h1>
             <p style="font-size: 16px; color: #6B7280; margin: 0;">
