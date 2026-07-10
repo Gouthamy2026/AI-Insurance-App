@@ -38,21 +38,26 @@ def verify_health_coverage_hub(request: HealthHubVerificationRequest):
 
     logger.info(f"Health Verification Hub Request - Provider: {provider}, Policy Type: {policy_type}, Condition: {condition}")
 
-    query_text = f"Provider: {provider}, Policy Type: {policy_type}, Medical Condition: {condition}, Treatment: {treatment}, Scenario: {scenario}"
+    # Create a highly targeted search query to maximize Pinecone retrieval precision
+    search_query = f"{condition} {treatment} coverage exclusions waiting period {provider}"
+
+    # We keep the full text for the LLM to understand the context
+    full_scenario_text = f"Provider: {provider}\nPolicy Type: {policy_type}\nMedical Condition: {condition}\nTreatment: {treatment}\nScenario: {scenario}"
 
     # Step 4: Generate Embeddings
     logger.info("Generating embedding for Health Verification Hub query...")
     try:
-        embedding = get_embedding(query_text)
+        # Use the targeted search query for embeddings, not the noisy full text
+        embedding = get_embedding(search_query)
     except Exception as e:
         logger.error(f"Embedding Failure: {e}")
         raise HTTPException(status_code=500, detail="Failed to generate embedding for the input scenario.")
 
-    # Step 5: Search Pinecone
-    search_namespaces = ["health_policy", "regulatory_governance"]
-    logger.info(f"Searching Pinecone namespaces: {search_namespaces}")
+    # Search Pinecone - Focus strictly on health_policy with top_k=7 as requested
+    search_namespaces = ["health_policy"]
+    logger.info(f"Searching Pinecone namespaces: {search_namespaces} with top_k=7")
     try:
-        search_results = query_vectors_multi_namespace(embedding, namespaces=search_namespaces, top_k_per_namespace=5)
+        search_results = query_vectors_multi_namespace(embedding, namespaces=search_namespaces, top_k_per_namespace=7)
         matches = search_results.get("matches", [])
         logger.info(f"Retrieved {len(matches)} documents from Pinecone.")
     except Exception as e:
@@ -80,23 +85,23 @@ def verify_health_coverage_hub(request: HealthHubVerificationRequest):
          raise HTTPException(status_code=404, detail="No readable text context found in the knowledge base.")
 
     # Step 7: Build Groq Prompt
-    system_prompt = """You are a Health Coverage Verification Engine.
+    system_prompt = """You are a highly definitive Health Coverage Verification Engine.
 
 IMPORTANT RULES:
-1. Never provide generic hospitalization answers if disease-specific evidence exists.
-2. First identify:
+1. Provide a DEFINITIVE, DIRECT ANSWER. Do not repeat generic insurance jargon.
+2. Start "Coverage Status" with a clear "YES", "NO", or "PARTIAL/CONDITIONAL", followed by a brief, definitive explanation of whether the coverage is possible or not.
+3. First identify:
    - Medical Condition
    - Treatment
-3. Search retrieved context for:
+4. Search retrieved context specifically for:
    - Coverage clauses
    - Exclusions
    - Waiting periods
    - Sub-limits
    - Special conditions
-4. If no condition-specific evidence exists, return: "Condition-specific coverage information could not be located in the policy documents."
-5. Do not assume coverage.
-6. Use only retrieved policy evidence.
-7. You must generate a structured JSON output with the exact keys below.
+5. If no condition-specific evidence exists in the provided context, you MUST explicitly state: "Condition-specific coverage information could not be located in the policy documents." Do NOT hallucinate or guess.
+6. Use ONLY retrieved policy evidence.
+7. Ensure each JSON section provides unique value. Do not repeat the exact same information across multiple keys.
 
 You MUST return a valid JSON object matching exactly this structure:
 {
@@ -110,7 +115,7 @@ You MUST return a valid JSON object matching exactly this structure:
 Do not include any Markdown code block delimiters (e.g., ```json) in your overall output. Output strictly the JSON.
 """
 
-    user_prompt = f"<context>\n{context_string}\n</context>\n\n<scenario>\n{query_text}\n</scenario>"
+    user_prompt = f"<context>\n{context_string}\n</context>\n\n<scenario>\n{full_scenario_text}\n</scenario>"
 
     # Step 8: Generate Structured JSON
     logger.info("Initiating Groq reasoning for Health Verification Hub.")
