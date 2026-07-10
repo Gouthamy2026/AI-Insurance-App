@@ -343,24 +343,48 @@ window.initHealthCoverageVerificationHub = () => {
     };
 
     const generateSingleReport = (data, payload) => {
-        let markdownText = data.report || "No report generated.";
-        currentReportContent = markdownText;
-        
-        // Simple markdown parser
-        let htmlContent = markdownText
-            .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-            .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-            .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\*(.*?)\*/g, '<em>$1</em>')
-            .replace(/\n\n/g, '<br><br>');
-            
-        // Process lists
-        const listRegex = /^[*-]\s(.*)$/gim;
-        if (htmlContent.match(listRegex)) {
-            htmlContent = htmlContent.replace(listRegex, '<li>$1</li>');
-            htmlContent = htmlContent.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
-        }
+        const createSection = (title, content, iconHtml) => `
+            <div style="background: white; border: 1px solid #E2E8F0; border-radius: 12px; padding: 24px; margin-bottom: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+                <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 700; color: #1E293B; display: flex; align-items: center; gap: 8px;">
+                    ${iconHtml}
+                    ${title}
+                </h3>
+                <div style="font-size: 15px; color: #475569; line-height: 1.6; white-space: pre-wrap;">${content || "No information provided."}</div>
+            </div>
+        `;
+
+        const checkIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`;
+        const alertIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`;
+        const clockIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
+        const fileIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`;
+        const starIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`;
+
+        currentReportContent = `
+# Health Coverage Verification Report
+
+## Coverage Status
+${data["Coverage Status"] || "No information provided."}
+
+## Relevant Evidence
+${data["Relevant Evidence"] || "No information provided."}
+
+## Waiting Period Analysis
+${data["Waiting Period Analysis"] || "No information provided."}
+
+## Exclusions
+${data["Exclusions"] || "No information provided."}
+
+## Final Eligibility Assessment
+${data["Final Eligibility Assessment"] || "No information provided."}
+        `.trim();
+
+        let htmlContent = `
+            ${createSection("Coverage Status", data["Coverage Status"], checkIcon)}
+            ${createSection("Relevant Evidence", data["Relevant Evidence"], fileIcon)}
+            ${createSection("Waiting Period Analysis", data["Waiting Period Analysis"], clockIcon)}
+            ${createSection("Exclusions", data["Exclusions"], alertIcon)}
+            ${createSection("Final Eligibility Assessment", data["Final Eligibility Assessment"], starIcon)}
+        `;
 
         singleReportView.innerHTML = `
             <div class="report-metadata">
@@ -381,7 +405,7 @@ window.initHealthCoverageVerificationHub = () => {
                     <span class="report-metadata-value">${payload.treatment_procedure}</span>
                 </div>
             </div>
-            <div class="report-content">
+            <div class="report-content" style="padding: 20px 0;">
                 ${htmlContent}
             </div>
         `;

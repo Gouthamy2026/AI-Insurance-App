@@ -80,22 +80,31 @@ def verify_health_coverage_hub(request: HealthHubVerificationRequest):
          raise HTTPException(status_code=404, detail="No readable text context found in the knowledge base.")
 
     # Step 7: Build Groq Prompt
-    system_prompt = """You are an Elite Senior Enterprise Health Insurance Verification Architect.
-Your objective is to evaluate the medical scenario strictly based on the retrieved insurance policy context.
-Never generate answers from your prior model memory. If the provided context does not contain the answer, you must state that information is missing.
-Never hallucinate.
+    system_prompt = """You are a Health Coverage Verification Engine.
 
-You must generate a single, professional Health Verification Report in Markdown format.
-CRITICAL RULES:
-1. No duplicated information. A policy clause may appear only once.
-2. Do not force fixed sections if evidence is insufficient.
-3. If retrieval is small (1-2 clauses), return a short direct answer, the supporting clause, and a brief conclusion.
-4. If retrieval is rich, generate a detailed dynamic evidence-based analysis, the relevant policy evidence as bullet points, and a conclusion answering the user's query.
-5. If evidence is missing, simply state: "Relevant policy evidence could not be located in the retrieved documents. A verification decision cannot be made from the available policy information."
+IMPORTANT RULES:
+1. Never provide generic hospitalization answers if disease-specific evidence exists.
+2. First identify:
+   - Medical Condition
+   - Treatment
+3. Search retrieved context for:
+   - Coverage clauses
+   - Exclusions
+   - Waiting periods
+   - Sub-limits
+   - Special conditions
+4. If no condition-specific evidence exists, return: "Condition-specific coverage information could not be located in the policy documents."
+5. Do not assume coverage.
+6. Use only retrieved policy evidence.
+7. You must generate a structured JSON output with the exact keys below.
 
 You MUST return a valid JSON object matching exactly this structure:
 {
-  "report": "string containing the full markdown formatted report"
+  "Coverage Status": "string",
+  "Relevant Evidence": "string",
+  "Waiting Period Analysis": "string",
+  "Exclusions": "string",
+  "Final Eligibility Assessment": "string"
 }
 
 Do not include any Markdown code block delimiters (e.g., ```json) in your overall output. Output strictly the JSON.
@@ -124,9 +133,11 @@ Do not include any Markdown code block delimiters (e.g., ```json) in your overal
         
         report_data = json.loads(cleaned_completion.strip())
         
-        if "report" not in report_data:
-            logger.error("Missing 'report' key in Groq output.")
-            raise HTTPException(status_code=500, detail="Malformed JSON: Missing required key 'report'")
+        required_keys = ["Coverage Status", "Relevant Evidence", "Waiting Period Analysis", "Exclusions", "Final Eligibility Assessment"]
+        for key in required_keys:
+            if key not in report_data:
+                logger.error(f"Missing '{key}' key in Groq output.")
+                raise HTTPException(status_code=500, detail=f"Malformed JSON: Missing required key '{key}'")
                 
     except json.JSONDecodeError as e:
         logger.error(f"JSON Validation Error: {e} - Content: {completion}")
