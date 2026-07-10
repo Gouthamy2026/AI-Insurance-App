@@ -91,6 +91,7 @@ export const IrdaiComplianceChecker = () => {
                 document.getElementById('irdai-out-query').textContent = query;
                 document.getElementById('irdai-out-response').textContent = data.ai_response || "No response generated.";
                 
+                document.getElementById('irdai-form-card').style.display = 'none';
                 loadingArea.style.display = 'none';
                 outputArea.style.display = 'block';
                 outputArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -151,7 +152,7 @@ export const IrdaiComplianceChecker = () => {
             </div>
 
             <!-- Query Input Form -->
-            <div class="glass-card" style="padding: 40px; margin-bottom: 24px;">
+            <div id="irdai-form-card" class="glass-card" style="padding: 40px; margin-bottom: 24px;">
                 <form id="irdai-form">
                     <label style="display: block; font-size: 14px; font-weight: 800; color: #0F172A; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Ask Your Compliance Question</label>
                     <textarea 
@@ -198,11 +199,25 @@ export const IrdaiComplianceChecker = () => {
                     <p id="irdai-out-query" style="font-weight: 500; font-style: italic; color: #111827; margin: 0; padding: 16px; background: #F8FAFC; border-radius: 8px; border: 1px solid #E2E8F0;"></p>
                 </div>
                 <div>
-                    <h3 style="font-size: 16px; font-weight: 700; color: #10B981; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-                        AI Response
+                    <h3 style="font-size: 22px; font-weight: 800; background: linear-gradient(135deg, #8b5cf6, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; letter-spacing: -0.02em;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="url(#premiumGradient)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <defs>
+                                <linearGradient id="premiumGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#8b5cf6" />
+                                    <stop offset="100%" stop-color="#ec4899" />
+                                </linearGradient>
+                            </defs>
+                            <path d="M12 2v20"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                        </svg>
+                        AI Analyser
                     </h3>
-                    <p id="irdai-out-response" style="white-space: pre-wrap; line-height: 1.8; color: #334155; font-size: 16px; margin: 0;"></p>
+                    <p id="irdai-out-response" style="white-space: pre-wrap; line-height: 1.8; color: #1E293B; font-size: 16px; margin: 0; padding: 24px; background: #FFFFFF; border-radius: 12px; box-shadow: 0 10px 30px rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.2);"></p>
+                    
+                    <div style="margin-top: 32px; text-align: center;">
+                        <button onclick="document.getElementById('irdai-output').style.display='none'; document.getElementById('irdai-form-card').style.display='block'; document.getElementById('irdai-query-input').value='';" class="irdai-btn" style="background: #F8FAFC; color: #8b5cf6; border: 2px solid #8b5cf6; padding: 12px 24px; font-size: 15px;">
+                            Ask Another Question
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
