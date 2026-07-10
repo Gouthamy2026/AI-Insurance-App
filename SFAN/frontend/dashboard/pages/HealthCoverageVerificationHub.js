@@ -134,7 +134,7 @@ export const HealthCoverageVerificationHub = () => {
                 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
                 
                 .report-section {
-                    background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+                    background: linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 50%, #f5f3ff 100%);
                     border: 1px solid rgba(229, 231, 235, 0.8);
                     border-radius: 12px;
                     padding: 40px;
@@ -154,7 +154,8 @@ export const HealthCoverageVerificationHub = () => {
                 .report-metadata-item {
                     display: flex;
                     flex-direction: column;
-                    background: rgba(255, 255, 255, 0.5);
+                    background: rgba(255, 255, 255, 0.75);
+                    backdrop-filter: blur(8px);
                     padding: 15px;
                     border-radius: 8px;
                     border: 1px solid rgba(241, 245, 249, 1);
@@ -344,7 +345,7 @@ window.initHealthCoverageVerificationHub = () => {
 
     const generateSingleReport = (data, payload) => {
         const createSection = (title, content, iconHtml) => `
-            <div style="background: white; border: 1px solid #E2E8F0; border-radius: 12px; padding: 24px; margin-bottom: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+            <div style="background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 12px; padding: 24px; margin-bottom: 24px; box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.05), 0 2px 6px -2px rgba(0, 0, 0, 0.02);">
                 <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 700; color: #1E293B; display: flex; align-items: center; gap: 8px;">
                     ${iconHtml}
                     ${title}
