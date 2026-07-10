@@ -9,6 +9,27 @@ from backend.services.groq_service import generate_completion
 
 logger = logging.getLogger(__name__)
 
+def expand_condition(condition: str, treatment: str) -> str:
+    combined = f"{condition.lower()} {treatment.lower()}"
+    expansion = set()
+    
+    if any(x in combined for x in ["heart", "cardiac", "angioplasty", "cabg"]):
+        expansion.update(["cardiac treatment", "coronary artery disease", "stent implantation", "cardiovascular procedures", "hospitalization benefits", "day-care procedures"])
+    
+    if any(x in combined for x in ["cancer", "oncology", "chemo", "radiation", "tumor"]):
+        expansion.update(["oncology", "chemotherapy", "radiation therapy", "malignant tumor", "hospitalization"])
+
+    if any(x in combined for x in ["kidney", "renal", "dialysis"]):
+        expansion.update(["renal failure", "dialysis", "chronic kidney disease", "day-care procedures"])
+
+    if any(x in combined for x in ["eye", "cataract", "vision", "lasik"]):
+        expansion.update(["cataract surgery", "day-care procedures", "vision correction", "lens replacement"])
+
+    if not expansion:
+        return f"{condition} {treatment}"
+        
+    return f"{condition} {treatment} " + " ".join(list(expansion))
+
 router = APIRouter(prefix="/health-verification-hub", tags=["Health Verification Hub"])
 
 class HealthHubVerificationRequest(BaseModel):
@@ -38,8 +59,9 @@ def verify_health_coverage_hub(request: HealthHubVerificationRequest):
 
     logger.info(f"Health Verification Hub Request - Provider: {provider}, Policy Type: {policy_type}, Condition: {condition}")
 
-    # Create a highly targeted search query to maximize Pinecone retrieval precision
-    search_query = f"{condition} {treatment} coverage exclusions waiting period {provider}"
+    # Apply intelligent condition expansion to improve retrieval accuracy
+    expanded_search_terms = expand_condition(condition, treatment)
+    search_query = f"{expanded_search_terms} coverage exclusions waiting period {provider}"
 
     # We keep the full text for the LLM to understand the context
     full_scenario_text = f"Provider: {provider}\nPolicy Type: {policy_type}\nMedical Condition: {condition}\nTreatment: {treatment}\nScenario: {scenario}"
@@ -53,62 +75,70 @@ def verify_health_coverage_hub(request: HealthHubVerificationRequest):
         logger.error(f"Embedding Failure: {e}")
         raise HTTPException(status_code=500, detail="Failed to generate embedding for the input scenario.")
 
-    # Search Pinecone - Focus strictly on health_policy with top_k=7 as requested
+    # Search Pinecone - Fetch top 40 and we will filter down
     search_namespaces = ["health_policy"]
-    logger.info(f"Searching Pinecone namespaces: {search_namespaces} with top_k=7")
+    logger.info(f"Searching Pinecone namespaces: {search_namespaces} with top_k=40")
     try:
-        search_results = query_vectors_multi_namespace(embedding, namespaces=search_namespaces, top_k_per_namespace=7)
+        search_results = query_vectors_multi_namespace(embedding, namespaces=search_namespaces, top_k_per_namespace=40)
         matches = search_results.get("matches", [])
         logger.info(f"Retrieved {len(matches)} documents from Pinecone.")
     except Exception as e:
         logger.error(f"Pinecone Timeout/Error: {e}")
         raise HTTPException(status_code=503, detail="Pinecone retrieval timeout or service unavailable.")
 
-    # Step 6: Validate Retrieved Context
-    if not matches:
-        raise HTTPException(status_code=404, detail="No relevant policy documents found in the knowledge base. Cannot generate health verification.")
+    # Filter and rank strictly to top 10 chunks
+    valid_matches = [m for m in matches if m.get("score", 0) > 0.65]
+    valid_matches = sorted(valid_matches, key=lambda x: x.get("score", 0), reverse=True)[:10]
+    
+    failsafe_response = {
+        "Health Scenario Summary": f"Assessment for {treatment} related to {condition} under {provider} ({policy_type}).",
+        "Coverage Assessment": "INSUFFICIENT POLICY EVIDENCE",
+        "Relevant Policy Evidence": "The Pinecone vector database could not locate sufficient policy clauses matching this specific medical condition or treatment.",
+        "Waiting Period Analysis": "Unknown due to lack of retrieved evidence.",
+        "Exclusions and Limitations": "Unknown due to lack of retrieved evidence.",
+        "Coverage Risk Factors": "High Risk - Coverage rules could not be verified in the retrieved documents.",
+        "Documentation Requirements": "Please consult the full policy wording or contact the insurer directly.",
+        "Coverage Recommendations": "We recommend escalating this query to an insurance advisor for manual verification.",
+        "Final Eligibility Assessment": "NOT VERIFIED"
+    }
 
-    valid_matches = [m for m in matches if m.get("score", 0) > 0.65] # Using reasonable threshold
     if not valid_matches:
-        raise HTTPException(status_code=404, detail="Retrieved documents are of low relevance. Cannot generate reliable health verification.")
+        logger.warning("Failsafe triggered: No valid matches above threshold.")
+        return failsafe_response
 
     context_parts = []
     for match in valid_matches:
         metadata = match.get("metadata", {})
         text = metadata.get("text", "")
-        if text:
+        if text and text not in context_parts:
             context_parts.append(text)
     
     context_string = "\n\n".join(context_parts)
     
     if not context_string.strip():
-         raise HTTPException(status_code=404, detail="No readable text context found in the knowledge base.")
+         logger.warning("Failsafe triggered: Context string empty.")
+         return failsafe_response
 
     # Step 7: Build Groq Prompt
-    system_prompt = """You are a highly definitive Health Coverage Verification Engine.
+    system_prompt = """You are an Elite Enterprise Health Coverage Verification Engine.
 
 IMPORTANT RULES:
-1. Provide a DEFINITIVE, DIRECT ANSWER. Do not repeat generic insurance jargon.
-2. Start "Coverage Status" with a clear "YES", "NO", or "PARTIAL/CONDITIONAL", followed by a brief, definitive explanation of whether the coverage is possible or not.
-3. First identify:
-   - Medical Condition
-   - Treatment
-4. Search retrieved context specifically for:
-   - Coverage clauses
-   - Exclusions
-   - Waiting periods
-   - Sub-limits
-   - Special conditions
-5. If no condition-specific evidence exists in the provided context, you MUST explicitly state: "Condition-specific coverage information could not be located in the policy documents." Do NOT hallucinate or guess.
-6. Use ONLY retrieved policy evidence.
-7. Ensure each JSON section provides unique value. Do not repeat the exact same information across multiple keys.
+1. Provide a DEFINITIVE, DIRECT ANSWER based EXCLUSIVELY on retrieved evidence. Do not guess or hallucinate.
+2. First identify: Medical Condition and Treatment.
+3. Search retrieved context specifically for: Coverage clauses, Exclusions, Waiting periods, Sub-limits, Special conditions.
+4. If no condition-specific evidence exists in the provided context, state: "Condition-specific coverage information could not be located in the policy documents."
+5. Ensure each JSON section provides unique value.
 
 You MUST return a valid JSON object matching exactly this structure:
 {
-  "Coverage Status": "string",
-  "Relevant Evidence": "string",
+  "Health Scenario Summary": "string",
+  "Coverage Assessment": "string",
+  "Relevant Policy Evidence": "string",
   "Waiting Period Analysis": "string",
-  "Exclusions": "string",
+  "Exclusions and Limitations": "string",
+  "Coverage Risk Factors": "string",
+  "Documentation Requirements": "string",
+  "Coverage Recommendations": "string",
   "Final Eligibility Assessment": "string"
 }
 
@@ -138,7 +168,11 @@ Do not include any Markdown code block delimiters (e.g., ```json) in your overal
         
         report_data = json.loads(cleaned_completion.strip())
         
-        required_keys = ["Coverage Status", "Relevant Evidence", "Waiting Period Analysis", "Exclusions", "Final Eligibility Assessment"]
+        required_keys = [
+            "Health Scenario Summary", "Coverage Assessment", "Relevant Policy Evidence", 
+            "Waiting Period Analysis", "Exclusions and Limitations", "Coverage Risk Factors", 
+            "Documentation Requirements", "Coverage Recommendations", "Final Eligibility Assessment"
+        ]
         for key in required_keys:
             if key not in report_data:
                 logger.error(f"Missing '{key}' key in Groq output.")

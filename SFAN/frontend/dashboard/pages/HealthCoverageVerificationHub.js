@@ -364,27 +364,43 @@ window.initHealthCoverageVerificationHub = () => {
         currentReportContent = `
 # Health Coverage Verification Report
 
-## Coverage Status
-${data["Coverage Status"] || "No information provided."}
+## Health Scenario Summary
+${data["Health Scenario Summary"] || "No information provided."}
 
-## Relevant Evidence
-${data["Relevant Evidence"] || "No information provided."}
+## Coverage Assessment
+${data["Coverage Assessment"] || "No information provided."}
+
+## Relevant Policy Evidence
+${data["Relevant Policy Evidence"] || "No information provided."}
 
 ## Waiting Period Analysis
 ${data["Waiting Period Analysis"] || "No information provided."}
 
-## Exclusions
-${data["Exclusions"] || "No information provided."}
+## Exclusions and Limitations
+${data["Exclusions and Limitations"] || "No information provided."}
+
+## Coverage Risk Factors
+${data["Coverage Risk Factors"] || "No information provided."}
+
+## Documentation Requirements
+${data["Documentation Requirements"] || "No information provided."}
+
+## Coverage Recommendations
+${data["Coverage Recommendations"] || "No information provided."}
 
 ## Final Eligibility Assessment
 ${data["Final Eligibility Assessment"] || "No information provided."}
         `.trim();
 
         let htmlContent = `
-            ${createSection("Coverage Status", data["Coverage Status"], checkIcon)}
-            ${createSection("Relevant Evidence", data["Relevant Evidence"], fileIcon)}
+            ${createSection("Health Scenario Summary", data["Health Scenario Summary"], fileIcon)}
+            ${createSection("Coverage Assessment", data["Coverage Assessment"], checkIcon)}
+            ${createSection("Relevant Policy Evidence", data["Relevant Policy Evidence"], fileIcon)}
             ${createSection("Waiting Period Analysis", data["Waiting Period Analysis"], clockIcon)}
-            ${createSection("Exclusions", data["Exclusions"], alertIcon)}
+            ${createSection("Exclusions and Limitations", data["Exclusions and Limitations"], alertIcon)}
+            ${createSection("Coverage Risk Factors", data["Coverage Risk Factors"], alertIcon)}
+            ${createSection("Documentation Requirements", data["Documentation Requirements"], fileIcon)}
+            ${createSection("Coverage Recommendations", data["Coverage Recommendations"], starIcon)}
             ${createSection("Final Eligibility Assessment", data["Final Eligibility Assessment"], starIcon)}
         `;
 
