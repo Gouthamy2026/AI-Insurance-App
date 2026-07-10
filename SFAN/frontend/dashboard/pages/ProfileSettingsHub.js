@@ -21,9 +21,11 @@ function formatRelativeDate(dateString) {
 }
 
 export const ProfileSettingsHub = (user = {}) => {
+    if (window.ProfileHubActions) window.ProfileHubActions.currentUser = user;
     // Initialize Actions
     if (!window.ProfileHubActions) {
         window.ProfileHubActions = {
+            currentUser: user,
             state: {
                 profile: null,
                 policies: null,
@@ -332,7 +334,10 @@ export const ProfileSettingsHub = (user = {}) => {
 // --- RENDERERS FOR DYNAMIC TABS ---
 
 function renderProfileTab(profile) {
-    const initials = (profile.full_name || profile.email || 'U').charAt(0).toUpperCase();
+    const currentUser = window.ProfileHubActions?.currentUser || {};
+    const fallbackName = currentUser.fullName || currentUser.email || 'Policyholder';
+    const displayFullName = profile.full_name || fallbackName;
+    const initials = displayFullName.charAt(0).toUpperCase();
     const phoneVerifiedHtml = profile.phone_number ? 
         `<span style="font-size: 12px; font-weight: 600; color: #059669; background: #D1FAE5; padding: 6px 12px; border-radius: 12px;">Verified</span>` : 
         `<button style="background: white; border: 1px solid #CBD5E1; color: #0F172A; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;" onclick="window.ProfileHubActions.showToast('Verification code sent')">Verify Now</button>`;
@@ -346,7 +351,7 @@ function renderProfileTab(profile) {
                         ${initials}
                     </div>
                     <div>
-                        <h2 style="margin: 0 0 6px 0; font-size: 28px; font-weight: 800; color: #0F172A; letter-spacing: -0.5px;">${profile.full_name || 'Policyholder'}</h2>
+                        <h2 style="margin: 0 0 6px 0; font-size: 28px; font-weight: 800; color: #0F172A; letter-spacing: -0.5px;">${displayFullName}</h2>
                         <div style="display: flex; align-items: center; gap: 12px; color: #64748B; font-size: 15px; font-weight: 500;">
                             <span style="display: flex; align-items: center; gap: 6px; background: #F1F5F9; padding: 4px 10px; border-radius: 6px;">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
@@ -369,7 +374,7 @@ function renderProfileTab(profile) {
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
                         <div>
                             <label style="display: block; font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 8px;">Full Legal Name</label>
-                            <input type="text" id="profile_full_name" class="input-field" value="${profile.full_name || ''}">
+                            <input type="text" id="profile_full_name" class="input-field" value="${displayFullName}">
                         </div>
                         <div>
                             <label style="display: block; font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 8px;">Date of Birth</label>
