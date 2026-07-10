@@ -137,19 +137,15 @@ export const IrdaiComplianceChecker = () => {
                 .primary-response p { font-size: 18px; font-weight: 600; color: #1E293B; }
             </style>
 
-            <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 32px;">
-                <div style="width: 56px; height: 56px; border-radius: 16px; background: linear-gradient(135deg, #8b5cf6, #3B82F6); display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 8px 16px rgba(139, 92, 246, 0.25);">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                        <line x1="9" y1="12" x2="15" y2="12"></line>
-                        <line x1="12" y1="9" x2="12" y2="15"></line>
-                    </svg>
-                </div>
-                <div>
-                    <h1 style="margin: 0 0 4px 0; font-size: 28px; font-weight: 800; color: #1F2937; letter-spacing: -0.02em;">IRDAI Compliance & Consumer Protection Hub</h1>
-                    <p style="margin: 0; color: #64748B; font-size: 16px; font-weight: 500;">Ask questions related to policyholder rights, grievances, and IRDAI regulations.</p>
-                </div>
-            </div>
+        <div class="header-section" style="margin-bottom: 30px;">
+            <h1 style="font-size: 28px; font-weight: 800; color: #1F2937; letter-spacing: -0.02em; margin-bottom: 8px; display: flex; align-items: center; gap: 12px;">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>
+                IRDAI Compliance & Consumer Protection Hub
+            </h1>
+            <p style="font-size: 16px; color: #6B7280; margin: 0;">
+                Ask questions related to policyholder rights, grievances, and IRDAI regulations.
+            </p>
+        </div>
 
             <!-- Query Input Form -->
             <div id="irdai-form-card" class="glass-card" style="padding: 40px; margin-bottom: 24px;">
