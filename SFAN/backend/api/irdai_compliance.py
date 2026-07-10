@@ -64,27 +64,28 @@ def analyze_compliance_query(
     context = "\n---\n".join(context_chunks)
     
     # Step 7: Construct Groq Prompt
-    system_prompt = """You are an elite IRDAI Regulatory Assistant and Consumer Protection Expert. 
-Your sole purpose is to answer compliance and policyholder rights questions based STRICTLY on the retrieved IRDAI regulatory context.
+    system_prompt = """You are an IRDAI Compliance Checker.
+Your role is to answer insurance consumer rights, policyholder protection, grievance, claim settlement, and regulatory questions using information retrieved from the IRDAI knowledge base stored in Pinecone.
 
-STRICT RULES:
-1. NEVER hallucinate or use prior knowledge.
-2. Every answer MUST be grounded in the provided Pinecone context.
-3. If the context does not contain sufficient evidence to answer the user's query, you MUST return a response indicating: "Relevant IRDAI regulatory evidence could not be located for this query."
-4. Do not generate report cards, scores, or claim predictions.
+Instructions:
+- Understand the user's question.
+- Retrieve relevant IRDAI regulations and guidelines from Pinecone.
+- Generate a direct, clear, and concise answer.
+- Explain the policyholder's rights and insurer's responsibilities when applicable.
+- Provide practical next steps if the user needs to take action.
+- Use simple language understandable by non-technical users.
+- Do not show analysis cards, scores, reports, tables, or structured sections.
+- Do not provide unsupported legal advice.
+- Base every response only on retrieved IRDAI documents.
 
 OUTPUT FORMAT:
-You must return a valid JSON object matching this exact structure:
+Return a valid JSON object matching this exact structure:
 {
-    "compliance_answer": "Direct answer to the user query based on the context.",
-    "regulatory_basis": "Relevant IRDAI rules, sections, or regulations cited in the context.",
-    "consumer_protection_guidance": "Explanation of available rights and protections.",
-    "recommended_next_steps": "Practical, actionable next steps for the user.",
-    "important_notes": "Important compliance considerations."
+    "ai_response": "Your complete narrative response here, covering rights, obligations, rules, and next steps in a unified, professional paragraph."
 }
 Make sure the response is purely valid JSON without any markdown code blocks wrapping it."""
 
-    prompt = f"<context>\n{context}\n</context>\n\n<query>\n{query}\n</query>"
+    prompt = f"<context>\n{context}\n</context>\n\nUser Question:\n{query}"
     
     # Step 8: Generate Structured Response
     try:
@@ -95,22 +96,20 @@ Make sure the response is purely valid JSON without any markdown code blocks wra
         
     # Step 9: Validate Output
     try:
-        # Sometimes LLMs wrap JSON in ```json blocks
         if "```json" in response_text:
             response_text = response_text.split("```json")[1].split("```")[0].strip()
         elif "```" in response_text:
             response_text = response_text.split("```")[1].strip()
             
         structured_response = json.loads(response_text)
+        # Ensure fallback key if model gets creative
+        if "ai_response" not in structured_response:
+            # Maybe it just returned the answer as a raw string or under another key
+            structured_response = {"ai_response": str(list(structured_response.values())[0]) if isinstance(structured_response, dict) else str(structured_response)}
     except json.JSONDecodeError:
         logger.error(f"Malformed JSON from Groq: {response_text}")
-        # Recover gracefully
         structured_response = {
-            "compliance_answer": "We processed your query, but the AI generated a malformed response. Please try rephrasing your question.",
-            "regulatory_basis": "Error formatting evidence.",
-            "consumer_protection_guidance": "N/A",
-            "recommended_next_steps": "Please try submitting your query again.",
-            "important_notes": "System format error recovered gracefully."
+            "ai_response": response_text.strip() if response_text.strip() else "We processed your query, but the AI generated a malformed response. Please try rephrasing your question."
         }
         
     # Step 10 & 11: Store Audit Log

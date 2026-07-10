@@ -88,11 +88,8 @@ export const IrdaiComplianceChecker = () => {
                 const data = await response.json();
                 
                 // Render Response
-                document.getElementById('irdai-out-answer').textContent = data.compliance_answer || "N/A";
-                document.getElementById('irdai-out-basis').textContent = data.regulatory_basis || "N/A";
-                document.getElementById('irdai-out-guidance').textContent = data.consumer_protection_guidance || "N/A";
-                document.getElementById('irdai-out-steps').textContent = data.recommended_next_steps || "N/A";
-                document.getElementById('irdai-out-notes').textContent = data.important_notes || "N/A";
+                document.getElementById('irdai-out-query').textContent = query;
+                document.getElementById('irdai-out-response').textContent = data.ai_response || "No response generated.";
                 
                 loadingArea.style.display = 'none';
                 outputArea.style.display = 'block';
@@ -193,31 +190,19 @@ export const IrdaiComplianceChecker = () => {
 
             <!-- Structured Output -->
             <div id="irdai-output" class="glass-card" style="display: none; padding: 40px; border-top: 8px solid #8b5cf6;">
-                <div class="primary-response">
-                    <h3>AI Compliance Response</h3>
-                    <p id="irdai-out-answer"></p>
+                <div style="margin-bottom: 24px;">
+                    <h3 style="font-size: 16px; font-weight: 700; color: #4F46E5; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                        User Query
+                    </h3>
+                    <p id="irdai-out-query" style="font-weight: 500; font-style: italic; color: #111827; margin: 0; padding: 16px; background: #F8FAFC; border-radius: 8px; border: 1px solid #E2E8F0;"></p>
                 </div>
-                
-                <div class="response-section">
-                    <h3>Consumer Protection Guidance</h3>
-                    <p id="irdai-out-guidance"></p>
-                </div>
-                
-                <div class="response-section">
-                    <h3>Recommended Next Steps</h3>
-                    <p id="irdai-out-steps"></p>
-                </div>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
-                    <div class="response-section" style="margin: 0;">
-                        <h3>IRDAI Regulatory Basis</h3>
-                        <p id="irdai-out-basis" style="font-size: 14px; color: #475569; background: #F1F5F9; padding: 16px; border-radius: 8px;"></p>
-                    </div>
-                    
-                    <div class="response-section" style="margin: 0;">
-                        <h3>Important Notes</h3>
-                        <p id="irdai-out-notes" style="font-size: 14px; color: #92400E; background: #FFFBEB; padding: 16px; border-radius: 8px; border-left: 3px solid #F59E0B;"></p>
-                    </div>
+                <div>
+                    <h3 style="font-size: 16px; font-weight: 700; color: #10B981; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                        AI Response
+                    </h3>
+                    <p id="irdai-out-response" style="white-space: pre-wrap; line-height: 1.8; color: #334155; font-size: 16px; margin: 0;"></p>
                 </div>
             </div>
         </div>
